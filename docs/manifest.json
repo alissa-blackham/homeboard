@@ -1,0 +1,24 @@
+{
+  "name": "Homeboard",
+  "short_name": "Homeboard",
+  "description": "Your personal pinboard, notes, and more",
+  "start_url": "/homeboard/",
+  "scope": "/homeboard/",
+  "display": "standalone",
+  "background_color": "#f4f1ed",
+  "theme_color": "#1c1916",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

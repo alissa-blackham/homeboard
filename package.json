@@ -1,0 +1,43 @@
+{
+  "name": "homeboard",
+  "version": "1.0.0",
+  "description": "Alissa's personal Homeboard",
+  "author": "Alissa",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win portable",
+    "build:web": "powershell -File build-web.ps1"
+  },
+  "build": {
+    "appId": "com.alissa.homeboard",
+    "productName": "Homeboard",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**"
+    ],
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": [
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "Homeboard.exe"
+    }
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.13.3",
+    "electron-packager": "^17.1.2"
+  }
+}

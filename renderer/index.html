@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Homeboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500;600&family=Playfair+Display:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <header id="topbar">
+    <div id="topbar-drag"></div>
+    <div id="topbar-left">
+      <button id="brand" title="Back to board" onclick="window.goHome()">Homeboard</button>
+    </div>
+    <nav id="topbar-nav">
+      <button class="nav-link nav-home active" id="nav-board" onclick="window.goHome()">&#8962; Board</button>
+      <span class="nav-sep"></span>
+      <button class="nav-link" data-panel="notes"   onclick="window.togglePanel('notes')">Notes</button>
+      <button class="nav-link" data-panel="todos"   onclick="window.togglePanel('todos')">To-Do</button>
+      <button class="nav-link" data-panel="vault"   onclick="window.togglePanel('vault')">Vault</button>
+      <button class="nav-link" data-panel="journal"   onclick="window.togglePanel('journal')">Journal</button>
+    </nav>
+    <div id="topbar-right">
+      <div id="topbar-add-wrap">
+        <button id="topbar-add-btn" title="Add to board">+</button>
+        <div id="topbar-add-dropdown" class="hidden">
+          <div class="tad-label">Board</div>
+          <button class="tad-item" id="tad-restore-btn" style="display:none" onclick="window.restoreBuiltinWidgets()">
+            <span class="tad-icon">&#8617;</span>Restore hidden widgets
+          </button>
+          <button class="tad-item" data-action="note">
+            <span class="tad-icon">&#9633;</span>Text Note
+          </button>
+          <button class="tad-item" data-action="image">
+            <span class="tad-icon">&#9641;</span>Image Pin
+          </button>
+          <div class="tad-divider"></div>
+          <div class="tad-label">Widgets</div>
+          <button class="tad-item" data-action="widget-todo">
+            <span class="tad-icon">&#10003;</span>To-Do
+          </button>
+          <button class="tad-item" data-action="widget-notes">
+            <span class="tad-icon">&#9998;</span>Notes
+          </button>
+          <button class="tad-item" data-action="widget-vault">
+            <span class="tad-icon">&#9679;</span>Vault
+          </button>
+          <button class="tad-item" data-action="widget-shortcuts">
+            <span class="tad-icon">&#9000;</span>Shortcuts
+          </button>
+          <button class="tad-item" data-action="widget-calendar">
+            <span class="tad-icon">&#9723;</span>Calendar
+          </button>
+          <button class="tad-item" data-action="widget-pomodoro">
+            <span class="tad-icon">&#9711;</span>Pomodoro
+          </button>
+          <button class="tad-item" data-action="widget-habits">
+            <span class="tad-icon">&#10040;</span>Habits
+          </button>
+          <button class="tad-item" data-action="widget-countdown">
+            <span class="tad-icon">&#9650;</span>Countdown
+          </button>
+          <button class="tad-item" data-action="widget-moon">
+            <span class="tad-icon">&#9790;</span>Moon Phase
+          </button>
+          <button class="tad-item" data-action="widget-vinyl">
+            <span class="tad-icon">&#9899;</span>Now Playing
+          </button>
+          <button class="tad-item" data-action="widget-quote">
+            <span class="tad-icon">&#10077;</span>Quote
+          </button>
+          <button class="tad-item" data-action="widget-photostrip">
+            <span class="tad-icon">&#9724;</span>Photo Strip
+          </button>
+          <button class="tad-item" data-action="widget-journal">
+            <span class="tad-icon">&#9998;</span>Journal
+          </button>
+          <button class="tad-item" data-action="widget-journal-invite">
+            <span class="tad-icon">&#10047;</span>Write Today
+          </button>
+          <div class="tad-divider"></div>
+          <div class="tad-label">Decorations</div>
+          <button class="tad-item" id="tad-library-btn">
+            <span class="tad-icon">&#10022;</span>Decoration Studio
+          </button>
+        </div>
+      </div>
+      <button class="nav-link" data-panel="settings" onclick="window.togglePanel('settings')">Settings</button>
+      <div id="win-controls">
+        <button id="btn-minimize">&#8211;</button>
+        <button id="btn-maximize">&#9633;</button>
+        <button id="btn-close">&#10005;</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Singleton pin picker (repositioned by JS) -->
+  <div id="pin-picker" class="hidden"></div>
+
+  <div id="board-wrap">
+    <div id="board">
+      <!-- Clock widget -->
+      <div class="widget bw" id="widget-clock" data-draggable="builtin" data-id="clock">
+        <div class="bw-drag-bar" onmousedown="window._drag(this.parentElement,event)">
+          <span class="drag-hint">&#8942;&#8942;</span>
+          <button class="bw-close-btn" title="Hide widget" onclick="window.hideBuiltinWidget('clock')">&#10005;</button>
+        </div>
+        <div id="clock-time">00:00</div>
+        <div id="clock-seconds"></div>
+        <div id="clock-date">Loading</div>
+      </div>
+      <!-- App shortcuts widget -->
+      <div class="widget bw" id="widget-apps" data-draggable="builtin" data-id="apps">
+        <div class="bw-drag-bar" onmousedown="window._drag(this.parentElement,event)">
+          <span class="widget-label">Quick Launch</span>
+          <div style="display:flex;gap:4px;align-items:center;">
+            <button class="bw-settings-btn" id="apps-open-settings">&#9881;</button>
+            <button class="bw-close-btn" title="Hide widget" onclick="window.hideBuiltinWidget('apps')">&#10005;</button>
+          </div>
+        </div>
+        <div id="apps-grid"></div>
+        <button class="widget-add-link" id="apps-go-settings">+ Add shortcuts in Settings</button>
+      </div>
+    </div>
+
+    <div id="board-toolbar">
+      <button id="add-note-btn" class="tb-btn primary">+ Note</button>
+      <button id="add-image-btn" class="tb-btn">+ Image</button>
+      <div class="tb-divider"></div>
+      <div id="color-row">
+        <span class="toolbar-label">Note colour</span>
+        <button class="nc" data-color="#f5f0e8" style="background:#f5f0e8" title="Cream"></button>
+        <button class="nc" data-color="#dce5d8" style="background:#dce5d8" title="Sage"></button>
+        <button class="nc" data-color="#cdd8e6" style="background:#cdd8e6" title="Blue"></button>
+        <button class="nc" data-color="#e6d8cd" style="background:#e6d8cd" title="Taupe"></button>
+        <button class="nc selected" data-color="#e8d5d5" style="background:#e8d5d5" title="Rose"></button>
+        <button class="nc" data-color="#d8d0e8" style="background:#d8d0e8" title="Lavender"></button>
+        <button class="nc" data-color="#e8e6d8" style="background:#e8e6d8" title="Straw"></button>
+        <button class="nc" data-color="#f0e0cc" style="background:#f0e0cc" title="Peach"></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════ PANELS ═══════════ -->
+
+  <div id="panel-notes" class="panel hidden">
+    <div class="panel-topbar flat">
+      <button class="panel-close" onclick="window.goHome()">&#8962; Board</button>
+      <span class="panel-title">Project Notes</span>
+      <div class="panel-topbar-actions">
+        <button id="new-project-btn" class="action-btn">New Project</button>
+      </div>
+    </div>
+    <div id="notes-body">
+      <div id="notes-sidebar"><div id="projects-list"></div></div>
+      <div id="notes-editor">
+        <div id="notes-placeholder"><p>Select a note or create a new project to begin.</p></div>
+        <div id="notes-editor-inner" class="hidden">
+          <div id="notes-editor-header">
+            <input type="text" id="note-title" placeholder="Untitled note" />
+            <div id="notes-editor-actions">
+              <button id="save-note-btn"   class="action-btn">Save</button>
+              <button id="delete-note-btn" class="ghost-btn">Delete</button>
+            </div>
+          </div>
+          <textarea id="note-content" placeholder="Start writing…"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="panel-todos" class="panel hidden">
+    <div class="panel-topbar flat">
+      <button class="panel-close" onclick="window.goHome()">&#8962; Board</button>
+      <span class="panel-title">To-Do List</span>
+    </div>
+    <div id="todo-body">
+      <div id="todo-add-row">
+        <input type="text" id="todo-input" placeholder="Add a task…" />
+        <select id="todo-priority">
+          <option value="normal">Normal</option>
+          <option value="high">High priority</option>
+          <option value="low">Low priority</option>
+        </select>
+        <button id="todo-add-btn" class="action-btn">Add</button>
+      </div>
+      <div id="todo-filters">
+        <button class="filter-btn active" data-filter="all">All</button>
+        <button class="filter-btn" data-filter="active">Active</button>
+        <button class="filter-btn" data-filter="done">Completed</button>
+      </div>
+      <div id="todo-list"></div>
+    </div>
+  </div>
+
+  <div id="panel-vault" class="panel hidden">
+    <div class="panel-topbar flat">
+      <button class="panel-close" onclick="window.goHome()">&#8962; Board</button>
+      <span class="panel-title">Password Vault</span>
+    </div>
+    <div id="vault-lock-screen" class="vault-screen">
+      <div class="vault-card">
+        <div class="vault-lock-icon">&#128274;</div>
+        <h2 id="vault-lock-title">Unlock Vault</h2>
+        <p id="vault-lock-desc">Enter your master password to access your saved passwords.</p>
+        <input type="password" id="vault-password-input" placeholder="Master password" autocomplete="off" />
+        <button id="vault-unlock-btn" class="action-btn full-w">Unlock</button>
+        <p id="vault-lock-error" class="error-text"></p>
+      </div>
+    </div>
+    <div id="vault-content" class="vault-screen hidden">
+      <div id="vault-controls">
+        <input type="text" id="vault-search" placeholder="Search passwords…" />
+        <button id="vault-add-btn" class="action-btn">+ Add</button>
+        <button id="vault-lock-btn" class="ghost-btn">Lock</button>
+      </div>
+      <div id="vault-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════ DIARY PANEL ═══════════ -->
+  <div id="panel-journal" class="panel hidden">
+    <div class="panel-topbar flat">
+      <button class="panel-close" onclick="window.goHome()">&#8962; Board</button>
+      <span class="panel-title">My Journal</span>
+      <div class="panel-topbar-actions" id="journal-topbar-actions" style="display:none">
+        <button id="journal-new-btn" class="action-btn">+ New Entry</button>
+        <button id="journal-lock-btn" class="ghost-btn">🔒 Lock</button>
+      </div>
+    </div>
+
+    <!-- Lock screen (same pattern as vault) -->
+    <div id="journal-lock-screen" class="vault-screen">
+      <div class="vault-card">
+        <div class="vault-lock-icon">&#9998;</div>
+        <h2 id="journal-lock-title">Unlock Journal</h2>
+        <p id="journal-lock-desc">Enter your master password to read your journal.</p>
+        <input type="password" id="journal-password-input" placeholder="Master password" autocomplete="off" />
+        <button id="journal-unlock-btn" class="action-btn">Unlock</button>
+        <p class="vault-hint" id="journal-hint"></p>
+      </div>
+    </div>
+
+    <!-- Diary content (shown when unlocked) -->
+    <div id="journal-content" class="diary-content hidden">
+      <div id="journal-sidebar">
+        <div id="journal-entry-list"></div>
+      </div>
+      <div id="journal-editor">
+        <div id="journal-editor-placeholder">
+          <p>Select an entry, or click <strong>+ New Entry</strong> to start writing.</p>
+        </div>
+        <div id="journal-editor-inner" class="hidden">
+          <div id="journal-editor-header">
+            <div id="journal-entry-datestamp"></div>
+            <div id="journal-entry-mood">
+              <span class="diary-mood-label">Mood:</span>
+              <button class="mood-btn" data-mood="😊">😊</button>
+              <button class="mood-btn" data-mood="😐">😐</button>
+              <button class="mood-btn" data-mood="😔">😔</button>
+              <button class="mood-btn" data-mood="😤">😤</button>
+              <button class="mood-btn" data-mood="🥰">🥰</button>
+              <button class="mood-btn" data-mood="😴">😴</button>
+              <button class="mood-btn" data-mood="🤒">🤒</button>
+              <button class="mood-btn" data-mood="🤩">🤩</button>
+            </div>
+          </div>
+          <textarea id="journal-text" placeholder="Write about your day…"></textarea>
+          <div id="journal-editor-footer">
+            <button id="journal-done-btn" class="action-btn"> Done</button>
+            <button id="journal-save-btn" class="ghost-btn">Save</button>
+            <button id="journal-delete-btn" class="ghost-btn">Delete entry</button>
+            <span id="journal-save-status"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="panel-settings" class="panel hidden side-panel">
+    <div class="panel-topbar flat">
+      <button class="panel-close" onclick="window.goHome()">&#10005;</button>
+      <span class="panel-title">Settings</span>
+    </div>
+    <div id="settings-body">
+      <section class="settings-section">
+        <h4>General</h4>
+        <div class="setting-row">
+          <label>Start with Windows</label>
+          <label class="toggle"><input type="checkbox" id="setting-startup" /><span class="slider"></span></label>
+        </div>
+      </section>
+      <section class="settings-section">
+        <h4>Board Background</h4>
+        <div id="bg-presets">
+          <button class="bg-preset active" data-bg="cork">Cork</button>
+          <button class="bg-preset" data-bg="linen">Linen</button>
+          <button class="bg-preset" data-bg="paper">Paper</button>
+          <button class="bg-preset" data-bg="slate">Slate</button>
+          <button class="bg-preset" data-bg="moss">Moss</button>
+          <button class="bg-preset" data-bg="dark">Dark</button>
+          <button class="bg-preset" data-bg="image">Custom image</button>
+        </div>
+        <div id="bg-image-row" class="hidden">
+          <button id="upload-bg-btn" class="action-btn">Choose image…</button>
+          <span id="bg-image-name" class="muted-text"></span>
+        </div>
+        <div class="setting-row" style="margin-top:10px">
+          <label>Board tint</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="color" id="setting-board-tint" value="#000000" />
+            <input type="range" id="setting-tint-opacity" min="0" max="80" value="0" style="width:90px" />
+          </div>
+        </div>
+      </section>
+      <section class="settings-section">
+        <h4>Appearance</h4>
+        <div class="setting-row">
+          <label>Accent colour</label>
+          <input type="color" id="setting-accent" value="#9c6b5e" />
+        </div>
+        <div class="setting-row">
+          <label>Font</label>
+          <select id="setting-font">
+            <option value="Nunito">Nunito</option>
+            <option value="'DM Sans'">DM Sans</option>
+            <option value="'Playfair Display'">Playfair Display</option>
+            <option value="Georgia">Georgia</option>
+            <option value="'Segoe UI'">Segoe UI</option>
+            <option value="'Courier New'">Courier New</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label>Dark top bar</label>
+          <label class="toggle"><input type="checkbox" id="setting-dark-topbar" checked /><span class="slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <label>Widget opacity</label>
+          <input type="range" id="setting-opacity" min="40" max="100" value="95" />
+        </div>
+        <div class="setting-row">
+          <label>Widget blur</label>
+          <label class="toggle"><input type="checkbox" id="setting-blur" checked /><span class="slider"></span></label>
+        </div>
+      </section>
+      <section class="settings-section">
+        <h4>Notes &amp; Clock</h4>
+        <div class="setting-row">
+          <label>Note style</label>
+          <select id="setting-note-style">
+            <option value="classic">Classic</option>
+            <option value="modern">Modern</option>
+            <option value="minimal">Minimal</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label>Clock format</label>
+          <select id="setting-clock-format">
+            <option value="24">24-hour</option>
+            <option value="12">12-hour (AM/PM)</option>
+          </select>
+        </div>
+      </section>
+      <section class="settings-section">
+        <h4>App Shortcuts</h4>
+        <p class="muted-text">Quick-launch buttons shown on the board.</p>
+        <div id="shortcuts-list"></div>
+        <div id="add-shortcut-form">
+          <input type="text" id="shortcut-name"  placeholder="Name" />
+          <input type="text" id="shortcut-emoji" placeholder="Icon" style="width:54px" />
+          <input type="text" id="shortcut-path"  placeholder="Path to .exe" />
+          <button id="add-shortcut-btn" class="action-btn">Add</button>
+        </div>
+      </section>
+      <section class="settings-section">
+        <h4>Vault Security</h4>
+        <button id="change-master-pw-btn" class="ghost-btn full-w">Change master password</button>
+        <p class="muted-text" style="margin-top:8px">If forgotten, vault data cannot be recovered.</p>
+      </section>
+    </div>
+  </div>
+
+  <!-- Vault modal -->
+  <div id="vault-modal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="vault-modal-title">Add Password</h3>
+        <button class="modal-close-btn" id="vault-cancel-btn">&#10005;</button>
+      </div>
+      <label>Site or app name</label>
+      <input type="text" id="vault-entry-name" placeholder="e.g. Google" />
+      <label>Username / Email</label>
+      <input type="text" id="vault-entry-username" placeholder="your@email.com" autocomplete="off" />
+      <label>Password</label>
+      <div class="pw-field">
+        <input type="password" id="vault-entry-password" placeholder="Password" autocomplete="new-password" />
+        <button id="vault-toggle-pw">Show</button>
+        <button id="vault-gen-pw">Generate</button>
+      </div>
+      <label>Notes</label>
+      <textarea id="vault-entry-notes" placeholder="Any additional details…"></textarea>
+      <div class="modal-actions">
+        <button id="vault-save-entry-btn" class="action-btn">Save</button>
+        <button id="vault-cancel-btn2" class="ghost-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+<!-- Inline modal (replaces prompt() which Electron can block) -->
+<div id="inline-modal" class="hidden">
+  <div id="inline-modal-backdrop" onclick="window.closeInlineModal()"></div>
+  <div id="inline-modal-box">
+    <div id="inline-modal-title"></div>
+    <input id="inline-modal-input" type="text" />
+    <div id="inline-modal-actions">
+      <button id="inline-modal-ok" class="action-btn">OK</button>
+      <button id="inline-modal-cancel" class="ghost-btn" onclick="window.closeInlineModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Widget settings modal -->
+<div id="widget-settings-modal" class="hidden">
+  <div id="wsm-backdrop" onclick="window.closeWidgetSettings()"></div>
+  <div id="wsm-box">
+    <div id="wsm-title">Widget Settings</div>
+    <div id="wsm-body"></div>
+    <div id="wsm-actions">
+      <button class="action-btn" onclick="window.closeWidgetSettings()">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ AESTHETIC LIBRARY MODAL ═══ -->
+<div id="aesthetic-library" class="hidden">
+  <div id="al-backdrop" onclick="window.closeAestheticLibrary()"></div>
+  <div id="al-box">
+    <div id="al-header">
+      <span id="al-title">Decoration Studio</span>
+      <button id="al-close" onclick="window.closeAestheticLibrary()">&#10005;</button>
+    </div>
+    <div id="al-tabs">
+      <button class="al-tab active" data-tab="cards">Cards</button>
+      <button class="al-tab" data-tab="stickers">Symbols</button>
+      <button class="al-tab" data-tab="washi">Washi</button>
+      <button class="al-tab" data-tab="albums">Albums</button>
+      <button class="al-tab" data-tab="apps">App Icons</button>
+      <button class="al-tab" data-tab="frames">Frames</button>
+    </div>
+    <div id="al-content"></div>
+  </div>
+</div>
+
+<script src="renderer.js"></script>
+</body>
+</html>
+
