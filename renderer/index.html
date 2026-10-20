@@ -23,6 +23,7 @@
       <button class="nav-link" data-panel="journal"   onclick="window.togglePanel('journal')">Journal</button>
     </nav>
     <div id="topbar-right">
+      <button id="search-btn" class="nav-link" title="Search everything (Ctrl+K)"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg> Search</button>
       <div id="topbar-add-wrap">
         <button id="topbar-add-btn" title="Add to board">+</button>
         <div id="topbar-add-dropdown" class="hidden">
@@ -61,6 +62,9 @@
           </button>
           <button class="tad-item" data-action="widget-countdown">
             <span class="tad-icon">&#9650;</span>Countdown
+          </button>
+          <button class="tad-item" data-action="widget-weather">
+            <span class="tad-icon">&#9728;</span>Weather
           </button>
           <button class="tad-item" data-action="widget-moon">
             <span class="tad-icon">&#9790;</span>Moon Phase
@@ -179,6 +183,8 @@
     <div id="todo-body">
       <div id="todo-add-row">
         <input type="text" id="todo-input" placeholder="Add a task…" />
+        <input type="date" id="todo-due" title="Due date (optional)" />
+        <input type="time" id="todo-due-time" title="Remind me at (optional, otherwise 9am)" />
         <select id="todo-priority">
           <option value="normal">Normal</option>
           <option value="high">High priority</option>
@@ -291,6 +297,10 @@
           <label>Start with Windows</label>
           <label class="toggle"><input type="checkbox" id="setting-startup" /><span class="slider"></span></label>
         </div>
+        <div class="setting-row">
+          <label>To-do reminders</label>
+          <label class="toggle"><input type="checkbox" id="setting-reminders" checked /><span class="slider"></span></label>
+        </div>
       </section>
       <section class="settings-section">
         <h4>Board Background</h4>
@@ -378,8 +388,30 @@
       </section>
       <section class="settings-section">
         <h4>Vault Security</h4>
+        <div class="setting-row">
+          <label>Lock after</label>
+          <select id="setting-autolock">
+            <option value="1">1 minute idle</option>
+            <option value="5">5 minutes idle</option>
+            <option value="15">15 minutes idle</option>
+            <option value="30">30 minutes idle</option>
+            <option value="0">Never</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label>Lock when minimised</label>
+          <label class="toggle"><input type="checkbox" id="setting-lock-on-hide" checked /><span class="slider"></span></label>
+        </div>
         <button id="change-master-pw-btn" class="ghost-btn full-w">Change master password</button>
         <p class="muted-text" style="margin-top:8px">If forgotten, vault data cannot be recovered.</p>
+      </section>
+      <section class="settings-section">
+        <h4>Backup</h4>
+        <p class="muted-text" id="backup-desc" style="margin-bottom:10px"></p>
+        <button id="export-data-btn" class="ghost-btn full-w" style="margin-bottom:8px">Export backup&hellip;</button>
+        <button id="import-data-btn" class="ghost-btn full-w" style="margin-bottom:8px">Import backup&hellip;</button>
+        <button id="open-backups-btn" class="ghost-btn full-w">Open daily backups folder</button>
+        <p id="backup-status" class="muted-text" style="margin-top:8px;display:none"></p>
       </section>
     </div>
   </div>
@@ -420,6 +452,16 @@
       <button id="inline-modal-ok" class="action-btn">OK</button>
       <button id="inline-modal-cancel" class="ghost-btn" onclick="window.closeInlineModal()">Cancel</button>
     </div>
+  </div>
+</div>
+
+<!-- Search (Ctrl+K) -->
+<div id="search-overlay" class="hidden">
+  <div id="search-backdrop" onclick="window.closeSearch()"></div>
+  <div id="search-box">
+    <input id="search-input" type="text" placeholder="Search everything&hellip;" autocomplete="off" spellcheck="false" />
+    <div id="search-results"></div>
+    <div id="search-footer"><span>&uarr;&darr; move</span><span>Enter open</span><span>Esc close</span></div>
   </div>
 </div>
 

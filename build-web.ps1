@@ -1,7 +1,8 @@
-# build-web.ps1 — Bundles renderer/* into:
+﻿# build-web.ps1 — Bundles renderer/* into:
 #   Homeboard.html        (standalone single-file, for Windows/USB)
 #   docs/index.html       (PWA version, for GitHub Pages / Chromebook install)
 # Run from the homeboard\ directory: .\build-web.ps1
+# Keep this file saved as UTF-8 *with BOM*: Windows PowerShell reads BOM-less scripts as ANSI and garbles any non-ASCII text.
 
 $dir  = Split-Path -Parent $MyInvocation.MyCommand.Path
 $css  = Get-Content "$dir\renderer\styles.css"  -Raw -Encoding UTF8
@@ -91,9 +92,39 @@ $shim = @'
 
   const noop = () => Promise.resolve();
 
+  function exportData(json) {
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(new Blob([json], { type: 'application/json' })),
+      download: 'homeboard-backup-' + new Date().toISOString().slice(0, 10) + '.json',
+    });
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    return Promise.resolve(true);
+  }
+
+  function importData() {
+    return new Promise(resolve => {
+      const input = Object.assign(document.createElement('input'), { type: 'file', accept: '.json,application/json' });
+      input.style.display = 'none';
+      document.body.appendChild(input);
+      input.onchange = () => {
+        const file = input.files[0]; input.remove();
+        if (!file) { resolve(null); return; }
+        const reader = new FileReader();
+        reader.onload  = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsText(file);
+      };
+      input.click();
+    });
+  }
+
   window.hb = {
     loadData:       () => Promise.resolve(loadData()),
     saveData:       data => Promise.resolve(saveData(data)),
+    saveDataSync:   saveData,
+    exportData:     exportData,
+    importData:     importData,
     openApp:        openApp,
     minimize:       noop, maximize: noop, close: noop, setStartup: noop,
     openImage:      () => openFilePicker('image/*'),
@@ -105,6 +136,7 @@ $shim = @'
     decrypt:        (o, p) => hbDecrypt(o, p),
   };
 
+  // Desktop-only bits: window buttons, start-with-Windows, app shortcuts
   document.addEventListener('DOMContentLoaded', () => {
     const wc = document.getElementById('win-controls');
     if (wc) wc.style.display = 'none';
@@ -114,52 +146,6 @@ $shim = @'
     if (appsWidget) appsWidget.style.display = 'none';
     const sc = document.getElementById('shortcuts-list');
     if (sc) { const sec = sc.closest('.settings-section'); if (sec) sec.style.display = 'none'; }
-
-    const settingsBody = document.getElementById('settings-body');
-    if (settingsBody) {
-      const sec = document.createElement('section');
-      sec.className = 'settings-section';
-      sec.innerHTML =
-        '<h4>Data Backup</h4>' +
-        '<p class="muted-text" style="margin-bottom:10px">Export your board data to a file, or import a backup. Your data is stored in this browser only.</p>' +
-        '<button id="web-export-btn" class="ghost-btn full-w" style="margin-bottom:8px">Export data…</button>' +
-        '<button id="web-import-btn" class="ghost-btn full-w">Import data…</button>' +
-        '<p id="web-import-status" class="muted-text" style="margin-top:8px;display:none"></p>';
-      settingsBody.appendChild(sec);
-
-      document.getElementById('web-export-btn').addEventListener('click', () => {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) { alert('No data to export yet.'); return; }
-        const blob = new Blob([raw], { type: 'application/json' });
-        const a = Object.assign(document.createElement('a'), {
-          href: URL.createObjectURL(blob),
-          download: 'homeboard-backup-' + new Date().toISOString().slice(0,10) + '.json'
-        });
-        a.click(); URL.revokeObjectURL(a.href);
-      });
-
-      document.getElementById('web-import-btn').addEventListener('click', () => {
-        const input = Object.assign(document.createElement('input'), { type:'file', accept:'.json', style:'display:none' });
-        document.body.appendChild(input);
-        input.onchange = () => {
-          const file = input.files[0]; document.body.removeChild(input);
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = () => {
-            try {
-              JSON.parse(reader.result);
-              if (!confirm('Replace all current data with this backup?')) return;
-              localStorage.setItem(STORAGE_KEY, reader.result);
-              const st = document.getElementById('web-import-status');
-              if (st) { st.style.display=''; st.textContent='Imported! Reloading…'; }
-              setTimeout(() => location.reload(), 1000);
-            } catch { alert('Invalid backup file.'); }
-          };
-          reader.readAsText(file);
-        };
-        input.click();
-      });
-    }
   });
 })();
 </script>

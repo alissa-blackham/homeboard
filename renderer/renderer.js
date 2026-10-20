@@ -31,6 +31,12 @@ window.togglePanel = function (name) {
   }
 };
 
+// Like togglePanel, but never closes a panel that's already open
+window.openPanel = function (name) {
+  const panel = document.getElementById('panel-' + name);
+  if (panel && panel.classList.contains('hidden')) window.togglePanel(name);
+};
+
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════
@@ -57,6 +63,7 @@ const NOTE_COLORS = [
 ];
 
 const KB_SHORTCUTS = [
+  { keys:'Ctrl+K',       label:'Search everything' },
   { keys:'Ctrl+Shift+H', label:'Home / close panel' },
   { keys:'Ctrl+Shift+B', label:'Browser' },
   { keys:'Ctrl+Shift+N', label:'Notes' },
@@ -163,16 +170,21 @@ const WIDGET_SETTINGS = {
   habits: [
     { key:'habitsShowCount', label:'Show completion count', type:'toggle', default:false },
   ],
+  weather: [
+    { key:'city',  label:'City or town', type:'text', placeholder:'e.g. Edinburgh' },
+    { key:'units', label:'Units', type:'select', options:[{v:'c',l:'°C, km/h'},{v:'f',l:'°F, mph'}] },
+  ],
 };
 
 // ── Inline modal (replaces prompt()) ─────────────────────────────
 window.closeInlineModal = function() {
   document.getElementById('inline-modal')?.classList.add('hidden');
 };
-function showInlineModal(title, placeholder, onOk) {
+function showInlineModal(title, placeholder, onOk, inputType) {
   const m = document.getElementById('inline-modal'); if (!m) return;
   document.getElementById('inline-modal-title').textContent = title;
   const inp = document.getElementById('inline-modal-input');
+  inp.type = inputType || 'text';
   inp.value = ''; inp.placeholder = placeholder || '';
   m.classList.remove('hidden');
   setTimeout(() => inp.focus(), 50);
@@ -188,7 +200,7 @@ window.closeWidgetSettings = function() {
 function openWidgetSettings(w) {
   const schema = WIDGET_SETTINGS[w.type]; if (!schema || !schema.length) return;
   const modal = document.getElementById('widget-settings-modal'); if (!modal) return;
-  const labels = { clock:'Clock', moon:'Moon Phase', pomodoro:'Pomodoro', calendar:'Calendar', habits:'Habit Tracker' };
+  const labels = { clock:'Clock', moon:'Moon Phase', pomodoro:'Pomodoro', calendar:'Calendar', habits:'Habit Tracker', weather:'Weather' };
   document.getElementById('wsm-title').textContent = (labels[w.type] || w.type) + ' Settings';
   const body = document.getElementById('wsm-body'); body.innerHTML = '';
   if (!w.opts) w.opts = {};
@@ -206,6 +218,9 @@ function openWidgetSettings(w) {
     } else if (field.type === 'number') {
       row.innerHTML = '<label class="wsm-label">' + field.label + '</label><input type="number" class="wsm-number" value="' + (cur ?? field.default ?? '') + '" min="' + (field.min||1) + '" max="' + (field.max||99) + '" />';
       row.querySelector('input').onchange = e => { w.opts[field.key] = parseInt(e.target.value) || field.default; save(); refreshMiniWidget(w); };
+    } else if (field.type === 'text') {
+      row.innerHTML = '<label class="wsm-label">' + field.label + '</label><input type="text" class="wsm-text" value="' + esc(cur ?? '') + '" placeholder="' + esc(field.placeholder || '') + '" />';
+      row.querySelector('input').onchange = e => { w.opts[field.key] = e.target.value.trim(); save(); refreshMiniWidget(w); };
     }
     body.appendChild(row);
   });
@@ -251,7 +266,26 @@ let editingVaultId   = null;
 let todoFilter       = 'all';
 let activePinEl      = null;
 
-const save = () => window.hb.saveData(state);
+// Saves are batched: a burst of edits (typing, dragging) is written once, shortly after it stops
+let saveTimer = null, saveWaiters = [];
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flushSave, 400);
+  return new Promise(resolve => saveWaiters.push(resolve));
+}
+async function flushSave() {
+  clearTimeout(saveTimer); saveTimer = null;
+  const waiters = saveWaiters; saveWaiters = [];
+  const ok = await window.hb.saveData(state);
+  waiters.forEach(r => r(ok));
+  return ok;
+}
+// On close there's no time for an async write, so anything pending is written synchronously
+window.addEventListener('beforeunload', () => {
+  if (!saveTimer) return;
+  clearTimeout(saveTimer); saveTimer = null;
+  if (window.hb.saveDataSync) window.hb.saveDataSync(state); else window.hb.saveData(state);
+});
 
 // ═══════════════════════════════════════════════════════════════
 // INIT
@@ -284,6 +318,9 @@ async function init() {
   setupVault();
   setupJournal();
   setupSettings();
+  setupSearch();
+  setupAutoLock();
+  setupReminders();
 
   renderApps();
   renderProjects();
@@ -293,8 +330,154 @@ async function init() {
   applyWidgetPositions();
   applyHiddenWidgets();
 
+  // Weather widgets use a cache, so this only refetches once the data is ~25 minutes old
+  setInterval(() => refreshAllMiniWidgets('weather'), 10 * 60000);
+
   // Always start on the board
   window.goHome();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SEARCH (Ctrl+K)
+// ═══════════════════════════════════════════════════════════════
+
+let searchResults = [], searchSel = 0;
+
+function setupSearch() {
+  const input = document.getElementById('search-input');
+  document.getElementById('search-btn')?.addEventListener('click', openSearch);
+  if (!input) return;
+  input.addEventListener('input', () => { searchSel = 0; renderSearch(input.value); });
+  input.addEventListener('keydown', e => {
+    e.stopPropagation();   // keep the global Escape/shortcut handler out of it
+    if (e.key === 'Escape') closeSearch();
+    else if (e.key === 'ArrowDown') { e.preventDefault(); moveSearchSel(1); }
+    else if (e.key === 'ArrowUp')   { e.preventDefault(); moveSearchSel(-1); }
+    else if (e.key === 'Enter' && searchResults[searchSel]) { const r = searchResults[searchSel]; closeSearch(); r.open(); }
+  });
+}
+
+function openSearch() {
+  const ov = document.getElementById('search-overlay'); if (!ov) return;
+  ov.classList.remove('hidden');
+  const input = document.getElementById('search-input');
+  input.value = ''; searchSel = 0; renderSearch('');
+  setTimeout(() => input.focus(), 30);
+}
+window.closeSearch = closeSearch;
+function closeSearch() { document.getElementById('search-overlay')?.classList.add('hidden'); }
+
+function moveSearchSel(d) {
+  if (!searchResults.length) return;
+  searchSel = (searchSel + d + searchResults.length) % searchResults.length;
+  document.querySelectorAll('.search-result').forEach((el, i) => el.classList.toggle('sel', i === searchSel));
+  document.querySelector('.search-result.sel')?.scrollIntoView({ block: 'nearest' });
+}
+
+// Short excerpt around the first match, with the match highlighted
+function searchSnippet(text, q) {
+  text = String(text || '').replace(/\s+/g, ' ');
+  const i = text.toLowerCase().indexOf(q);
+  if (i < 0) return esc(text.slice(0, 90));
+  const start = Math.max(0, i - 35);
+  return (start ? '…' : '') + esc(text.slice(start, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length, i + q.length + 60));
+}
+
+function collectSearchResults(q) {
+  const out = [];
+  const has = s => String(s || '').toLowerCase().includes(q);
+  const hit = (...fields) => fields.find(has);
+
+  state.todos.forEach(t => {
+    if (!has(t.text)) return;
+    out.push({ kind: t.done ? 'Done' : 'To-do', icon: '✓', title: searchSnippet(t.text, q), sub: t.due ? fmtDue(t) : '', open: () => {
+      todoFilter = 'all';
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+      renderTodos(); window.openPanel('todos');
+      flashEl(document.querySelector('.todo-item[data-id="' + t.id + '"]'));
+    }});
+  });
+
+  state.boardNotes.forEach(n => {
+    const f = n.type === 'image' ? hit(n.caption) : hit(n.title, n.content);
+    if (f == null) return;
+    out.push({ kind: 'Board', icon: n.type === 'image' ? '🖼' : '🗒', title: searchSnippet(f, q),
+      sub: n.type === 'image' ? 'Image pin' : (n.title && f !== n.title ? esc(n.title) : 'Sticky note'), open: () => {
+        window.goHome();
+        const el = document.querySelector('#board [data-id="' + n.id + '"]');
+        if (el) { el.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' }); flashEl(el); }
+      }});
+  });
+
+  state.projects.forEach(p => {
+    if (has(p.name)) out.push({ kind: 'Project', icon: '📁', title: searchSnippet(p.name, q), sub: p.notes.length + ' notes', open: () => {
+      currentProjectId = p.id; renderProjects(); window.openPanel('notes');
+    }});
+    p.notes.forEach(note => {
+      const f = hit(note.title, note.content); if (f == null) return;
+      out.push({ kind: 'Note', icon: '✎', title: searchSnippet(f, q), sub: esc(p.name) + (f !== note.title ? ' · ' + esc(note.title || 'Untitled') : ''), open: () => {
+        currentProjectId = p.id; currentNoteId = note.id;
+        document.getElementById('note-title').value   = note.title;
+        document.getElementById('note-content').value = note.content;
+        showEditor(true); renderProjects(); window.openPanel('notes');
+      }});
+    });
+  });
+
+  // Only names and usernames are searchable; passwords and notes stay encrypted
+  state.vault.entries.forEach(e => {
+    const f = hit(e.name, e.username); if (f == null) return;
+    out.push({ kind: 'Vault', icon: '🔒', title: has(e.name) ? searchSnippet(e.name, q) : esc(e.name), sub: has(e.username) ? searchSnippet(e.username, q) : esc(e.username || ''), open: () => {
+      window.openPanel('vault');
+      const s = document.getElementById('vault-search');
+      if (vaultUnlocked && s) { s.value = e.name; renderVaultEntries(e.name.toLowerCase()); }
+    }});
+  });
+
+  if (journalUnlocked) {
+    state.diary.entries.forEach(e => {
+      if (!has(e.preview)) return;
+      out.push({ kind: 'Journal', icon: '📖', title: searchSnippet(e.preview, q), sub: fmtJournalSidebarDate(e.createdAt), open: () => {
+        window.openPanel('journal'); openJournalEntry(e.id);
+      }});
+    });
+  }
+
+  state.shortcuts.forEach(s => {
+    if (!has(s.name)) return;
+    out.push({ kind: 'App', icon: '🚀', title: searchSnippet(s.name, q), sub: 'Launch', open: () => window.hb.openApp(s.path) });
+  });
+
+  return out.slice(0, 60);
+}
+
+function renderSearch(raw) {
+  const list = document.getElementById('search-results'); if (!list) return;
+  const q = raw.trim().toLowerCase();
+  if (!q) {
+    searchResults = [];
+    list.innerHTML = '<div class="search-hint">Search to-dos, sticky notes, project notes, vault names' + (journalUnlocked ? ', journal' : '') + ' and apps.' +
+      (journalUnlocked ? '' : '<br><span>Unlock your journal to search it too.</span>') + '</div>';
+    return;
+  }
+  searchResults = collectSearchResults(q);
+  if (!searchResults.length) { list.innerHTML = '<div class="search-hint">Nothing matches “' + esc(raw.trim()) + '”.</div>'; return; }
+  list.innerHTML = '';
+  searchResults.forEach((r, i) => {
+    const el = document.createElement('button');
+    el.className = 'search-result' + (i === searchSel ? ' sel' : '');
+    el.innerHTML = '<span class="sr-icon">' + r.icon + '</span><span class="sr-main"><span class="sr-title">' + r.title + '</span>' +
+      (r.sub ? '<span class="sr-sub">' + r.sub + '</span>' : '') + '</span><span class="sr-kind">' + r.kind + '</span>';
+    el.addEventListener('click', () => { closeSearch(); r.open(); });
+    el.addEventListener('mousemove', () => { if (searchSel !== i) { searchSel = i; moveSearchSel(0); } });
+    list.appendChild(el);
+  });
+}
+
+function flashEl(el) {
+  if (!el) return;
+  el.classList.remove('hb-flash'); void el.offsetWidth; el.classList.add('hb-flash');
+  setTimeout(() => el.classList.remove('hb-flash'), 1600);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -304,7 +487,7 @@ async function init() {
 function setupTitlebar() {
   document.getElementById('btn-minimize').onclick = () => window.hb.minimize();
   document.getElementById('btn-maximize').onclick = () => window.hb.maximize();
-  document.getElementById('btn-close').onclick    = () => window.hb.close();
+  document.getElementById('btn-close').onclick    = async () => { await flushSave(); window.hb.close(); };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -314,6 +497,7 @@ function setupTitlebar() {
 function setupKeyboardShortcuts() {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { window.goHome(); return; }
+    if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'k') { e.preventDefault(); openSearch(); return; }
     if (e.ctrlKey && e.shiftKey) {
       const k = e.key.toUpperCase();
       if      (k === 'H') { e.preventDefault(); window.goHome(); }
@@ -1334,7 +1518,7 @@ function appendBoardWidget(w) {
   if (w.height) s += ';height:' + w.height + 'px';
   el.style.cssText = s;
 
-  const titles  = { todo:'To-Do', notes:'Notes', vault:'Vault', shortcuts:'Shortcuts', calendar:'Calendar', pomodoro:'Pomodoro', habits:'Habits', countdown:'Countdown', moon:'Moon Phase', journal:'Journal', 'journal-invite':'Write Today', vinyl:'Now Playing', quote:'Quote', photostrip:'Photo Strip' };
+  const titles  = { todo:'To-Do', notes:'Notes', vault:'Vault', shortcuts:'Shortcuts', calendar:'Calendar', pomodoro:'Pomodoro', habits:'Habits', countdown:'Countdown', moon:'Moon Phase', journal:'Journal', 'journal-invite':'Write Today', vinyl:'Now Playing', quote:'Quote', photostrip:'Photo Strip', weather:'Weather' };
   const panels  = { todo:'todos', notes:'notes', vault:'vault', journal:'journal', 'journal-invite':'journal' };
 
   let footerHTML = '';
@@ -1401,6 +1585,7 @@ function refreshMiniWidget(w) {
     if (w.type === 'vinyl')          renderVinylWidget(w.id);
     if (w.type === 'quote')          renderQuoteWidget(w.id);
     if (w.type === 'photostrip')     renderPhotoStripWidget(w.id);
+    if (w.type === 'weather')        renderWeatherWidget(w.id);
   } catch(e) { console.error('Widget refresh error', e); }
 }
 
@@ -1411,14 +1596,15 @@ function refreshAllMiniWidgets(type) {
 function refreshMiniTodo(wid) {
   const body = document.getElementById('mw-body-' + wid); if (!body) return;
   body.innerHTML = '';
-  const active = state.todos.filter(t => !t.done).slice(0,7);
+  const active = sortTodos(state.todos.filter(t => !t.done)).slice(0,7);
   const doneCount = state.todos.filter(t => t.done).length;
   if (!active.length && !state.todos.length) {
     body.innerHTML = '<div class="mw-empty">No tasks yet.</div>'; return;
   }
   active.forEach(todo => {
     const el = document.createElement('div'); el.className = 'mw-todo-item';
-    el.innerHTML = '<input type="checkbox" /><span class="mw-todo-text">' + esc(todo.text) + '</span>';
+    el.innerHTML = '<input type="checkbox" /><span class="mw-todo-text">' + esc(todo.text) + '</span>' +
+      (todo.due ? '<span class="mw-todo-due ' + dueClass(todo) + '">' + esc(fmtDue(todo)) + '</span>' : '');
     el.querySelector('input').addEventListener('change', e => {
       const t = state.todos.find(t => t.id === todo.id);
       if (t) { t.done = e.target.checked; renderTodos(); save(); }
@@ -1959,6 +2145,79 @@ window.restoreBuiltinWidgets = function() {
   updateRestoreBtn();
 };
 
+// ── Weather (Open-Meteo: free, no API key) ──────────────────────
+const WEATHER_CODES = {
+  0:['Clear','☀️'], 1:['Mainly clear','🌤️'], 2:['Partly cloudy','⛅'], 3:['Overcast','☁️'],
+  45:['Fog','🌫️'], 48:['Freezing fog','🌫️'],
+  51:['Light drizzle','🌦️'], 53:['Drizzle','🌦️'], 55:['Heavy drizzle','🌧️'], 56:['Freezing drizzle','🌧️'], 57:['Freezing drizzle','🌧️'],
+  61:['Light rain','🌦️'], 63:['Rain','🌧️'], 65:['Heavy rain','🌧️'], 66:['Freezing rain','🌧️'], 67:['Freezing rain','🌧️'],
+  71:['Light snow','🌨️'], 73:['Snow','🌨️'], 75:['Heavy snow','❄️'], 77:['Snow grains','🌨️'],
+  80:['Showers','🌦️'], 81:['Showers','🌧️'], 82:['Heavy showers','⛈️'], 85:['Snow showers','🌨️'], 86:['Snow showers','❄️'],
+  95:['Thunderstorm','⛈️'], 96:['Thunderstorm, hail','⛈️'], 99:['Thunderstorm, hail','⛈️'],
+};
+const WEATHER_MAX_AGE = 25 * 60000;
+const weatherCache = {};   // widget id → { key, at, data }
+
+async function renderWeatherWidget(wid) {
+  const body = document.getElementById('mw-body-' + wid); if (!body) return;
+  const w = state.boardWidgets.find(x => x.id === wid); if (!w) return;
+  if (!w.opts) w.opts = {};
+  const opts = w.opts;
+  if (!opts.city) {
+    body.innerHTML = '<div class="weather-empty"><div class="weather-big-icon">🌤️</div><p>Where are you?</p><button class="action-btn">Set your town</button></div>';
+    body.querySelector('button').onclick = () => openWidgetSettings(w);
+    return;
+  }
+  const key = opts.city + '|' + (opts.units || 'c');
+  const cached = weatherCache[wid];
+  if (cached && cached.key === key && Date.now() - cached.at < WEATHER_MAX_AGE) { drawWeather(body, opts, cached.data); return; }
+  if (!cached || cached.key !== key) body.innerHTML = '<div class="mw-empty">Fetching the weather…</div>';
+  try {
+    if (!opts.geo || opts.geo.q !== opts.city) {
+      const g = await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&name=' + encodeURIComponent(opts.city)).then(r => r.json());
+      const place = g.results && g.results[0];
+      if (!place) { body.innerHTML = '<div class="mw-empty">Couldn\'t find “' + esc(opts.city) + '”.<br>Try another spelling in ⚙ settings.</div>'; return; }
+      opts.geo = { q: opts.city, lat: place.latitude, lon: place.longitude, name: place.name + (place.country_code ? ', ' + place.country_code : '') };
+      save();
+    }
+    const units = opts.units === 'f' ? '&temperature_unit=fahrenheit&wind_speed_unit=mph' : '';
+    const data = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + opts.geo.lat + '&longitude=' + opts.geo.lon +
+      '&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day' +
+      '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=4' + units).then(r => r.json());
+    if (!data.current) throw new Error('bad response');
+    weatherCache[wid] = { key, at: Date.now(), data };
+    drawWeather(body, opts, data);
+  } catch(e) {
+    if (cached && cached.key === key) drawWeather(body, opts, cached.data);
+    else body.innerHTML = '<div class="mw-empty">Weather isn\'t available right now.<br>Are you offline?</div>';
+  }
+}
+
+function drawWeather(body, opts, d) {
+  const c = d.current, wind = opts.units === 'f' ? 'mph' : 'km/h';
+  const [desc, icon] = WEATHER_CODES[c.weather_code] || ['—', '🌡️'];
+  const nightIcon = (c.weather_code <= 1 && !c.is_day) ? '🌙' : icon;
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dl = d.daily;
+  const forecast = dl.time.slice(1, 4).map((t, i) => {
+    const k = i + 1, [y, m, dd] = t.split('-').map(Number);
+    return '<div class="wf-day"><span class="wf-name">' + days[new Date(y, m - 1, dd).getDay()] + '</span>' +
+      '<span class="wf-icon">' + (WEATHER_CODES[dl.weather_code[k]] || ['', '🌡️'])[1] + '</span>' +
+      '<span class="wf-temps">' + Math.round(dl.temperature_2m_max[k]) + '° <i>' + Math.round(dl.temperature_2m_min[k]) + '°</i></span></div>';
+  }).join('');
+  body.innerHTML =
+    '<div class="weather-now">' +
+      '<div class="weather-big-icon">' + nightIcon + '</div>' +
+      '<div><div class="weather-temp">' + Math.round(c.temperature_2m) + '°</div>' +
+      '<div class="weather-desc">' + esc(desc) + '</div></div>' +
+    '</div>' +
+    '<div class="weather-meta">' + esc(opts.geo?.name || opts.city) + ' · feels ' + Math.round(c.apparent_temperature) + '° · ' +
+      Math.round(c.wind_speed_10m) + ' ' + wind +
+      (dl.precipitation_probability_max?.[0] != null ? ' · ' + dl.precipitation_probability_max[0] + '% rain' : '') + '</div>' +
+    '<div class="weather-today">Today ' + Math.round(dl.temperature_2m_max[0]) + '° / ' + Math.round(dl.temperature_2m_min[0]) + '°</div>' +
+    '<div class="weather-forecast">' + forecast + '</div>';
+}
+
 function applyHiddenWidgets() {
   const hidden = state.settings.hiddenWidgets || [];
   hidden.forEach(id => {
@@ -2094,13 +2353,23 @@ function setupTodos() {
   const input  = document.getElementById('todo-input');
   const addBtn = document.getElementById('todo-add-btn');
   const pri    = document.getElementById('todo-priority');
+  const due    = document.getElementById('todo-due');
+  const dueT   = document.getElementById('todo-due-time');
   const add = () => {
     if (!input) return;
     const text = input.value.trim(); if (!text) return;
-    state.todos.push({ id:uid(), text, done:false, priority:pri ? pri.value : 'normal' });
+    const todo = { id:uid(), text, done:false, priority:pri ? pri.value : 'normal' };
+    if (due && due.value) { todo.due = due.value; todo.dueTime = dueT ? dueT.value : ''; askNotificationPermission(); }
+    state.todos.push(todo);
     input.value = ''; if (pri) pri.value = 'normal';
+    if (due) due.value = ''; if (dueT) dueT.value = '';
     renderTodos(); refreshAllMiniWidgets('todo'); save();
   };
+  // A time only makes sense with a date
+  if (due && dueT) {
+    const syncTime = () => { dueT.disabled = !due.value; if (!due.value) dueT.value = ''; };
+    due.addEventListener('change', syncTime); syncTime();
+  }
   if (addBtn) addBtn.addEventListener('click', add);
   if (input)  input.addEventListener('keydown', e => e.key === 'Enter' && add());
   document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -2114,21 +2383,132 @@ function setupTodos() {
 function renderTodos() {
   const list = document.getElementById('todo-list'); if (!list) return;
   list.innerHTML = '';
-  const vis = state.todos.filter(t => todoFilter==='all' ? true : todoFilter==='active' ? !t.done : t.done);
+  const vis = sortTodos(state.todos.filter(t => todoFilter==='all' ? true : todoFilter==='active' ? !t.done : t.done));
   if (!vis.length) { list.innerHTML = '<p style="text-align:center;color:var(--text-3);margin-top:30px;font-size:13px">Nothing here yet.</p>'; return; }
   vis.forEach(todo => {
     const el = document.createElement('div'); el.className = 'todo-item' + (todo.done ? ' done' : '');
+    el.dataset.id = todo.id;
     const badge = todo.priority==='high' ? '<span class="todo-badge badge-high">High</span>' :
                   todo.priority==='low'  ? '<span class="todo-badge badge-low">Low</span>'   : '<span class="todo-badge badge-normal"></span>';
-    el.innerHTML = '<input type="checkbox" ' + (todo.done?'checked':'') + ' /><span class="todo-text">' + esc(todo.text) + '</span>' + badge + '<button class="todo-del">&#10005;</button>';
+    const dueLabel = todo.due
+      ? '<button class="todo-due ' + dueClass(todo) + '" title="Click to change the date, right-click to remove it">' + esc(fmtDue(todo)) + '</button>'
+      : '<button class="todo-due todo-due-add" title="Add a due date">&#128197;</button>';
+    el.innerHTML = '<input type="checkbox" ' + (todo.done?'checked':'') + ' /><span class="todo-text">' + esc(todo.text) + '</span>' +
+      dueLabel + '<input type="date" class="todo-due-picker" tabindex="-1" />' + badge + '<button class="todo-del">&#10005;</button>';
     el.querySelector('input').addEventListener('change', e => {
       const t=state.todos.find(t=>t.id===todo.id); if(t){t.done=e.target.checked;} renderTodos(); refreshAllMiniWidgets('todo'); save();
+    });
+    const picker = el.querySelector('.todo-due-picker');
+    const dueBtn = el.querySelector('.todo-due');
+    picker.value = todo.due || '';
+    dueBtn.addEventListener('click', () => { try { picker.showPicker(); } catch(e) { picker.focus(); } });
+    picker.addEventListener('change', () => {
+      const t = state.todos.find(t => t.id === todo.id); if (!t) return;
+      t.due = picker.value || null; t.reminded = false;
+      if (!t.due) t.dueTime = '';
+      if (t.due) askNotificationPermission();
+      renderTodos(); refreshAllMiniWidgets('todo'); save();
+    });
+    dueBtn.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      const t = state.todos.find(t => t.id === todo.id); if (!t || !t.due) return;
+      t.due = null; t.dueTime = ''; t.reminded = false;
+      renderTodos(); refreshAllMiniWidgets('todo'); save();
     });
     el.querySelector('.todo-del').addEventListener('click', () => {
       state.todos=state.todos.filter(t=>t.id!==todo.id); renderTodos(); refreshAllMiniWidgets('todo'); save();
     });
     list.appendChild(el);
   });
+}
+
+// ── Due dates ─────────────────────────────────────────────────────
+// Undone tasks with a due date come first (soonest first), then other undone tasks, then done ones
+function sortTodos(todos) {
+  const rank = t => t.done ? 2 : t.due ? 0 : 1;
+  return todos.map((t, i) => ({ t, i })).sort((a, b) => {
+    const r = rank(a.t) - rank(b.t); if (r) return r;
+    if (rank(a.t) === 0) return todoDueAt(a.t) - todoDueAt(b.t);
+    return a.i - b.i;
+  }).map(x => x.t);
+}
+
+// A date with no time is due (and reminded about) at 9am
+function todoDueAt(t) {
+  if (!t.due) return null;
+  const [y, m, d] = t.due.split('-').map(Number);
+  const [hh, mm]  = (t.dueTime || '09:00').split(':').map(Number);
+  return new Date(y, m - 1, d, hh, mm);
+}
+
+function dueDayDiff(t) {
+  const [y, m, d] = t.due.split('-').map(Number);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return Math.round((new Date(y, m - 1, d) - today) / 86400000);
+}
+
+function fmtDue(t) {
+  const diff = dueDayDiff(t);
+  const [y, m, d] = t.due.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const days   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const short  = d + ' ' + months[m - 1];
+  let label = diff < 0 ? 'Overdue · ' + short : diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : diff < 7 ? days[date.getDay()] : short;
+  if (t.dueTime && diff >= 0) label += ' ' + t.dueTime;
+  return label;
+}
+
+function dueClass(t) {
+  if (t.done) return 'due-later';
+  const diff = dueDayDiff(t);
+  return diff < 0 ? 'due-overdue' : diff === 0 ? 'due-today' : diff <= 2 ? 'due-soon' : 'due-later';
+}
+
+// ── Reminders ─────────────────────────────────────────────────────
+function askNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    try { Notification.requestPermission(); } catch(e) {}
+  }
+}
+
+function setupReminders() {
+  let day = new Date().toDateString();
+  checkReminders();
+  setInterval(() => {
+    // "Today"/"Tomorrow" labels go stale at midnight
+    const now = new Date().toDateString();
+    if (now !== day) { day = now; renderTodos(); refreshAllMiniWidgets('todo'); }
+    checkReminders();
+  }, 30000);
+}
+
+function checkReminders() {
+  if (state.settings.todoReminders === false) return;
+  const now = new Date();
+  const due = state.todos.filter(t => !t.done && !t.reminded && t.due && todoDueAt(t) <= now);
+  if (!due.length) return;
+  due.forEach(t => { t.reminded = true; });
+  const title = due.length === 1 ? 'To-do due' : due.length + ' to-dos due';
+  const body  = due.map(t => t.text).join('\n');
+  showToast('⏰ ' + title + ': ' + due.map(t => t.text).join(', '), () => window.openPanel('todos'));
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      const n = new Notification(title, { body });
+      n.onclick = () => { window.focus(); window.openPanel('todos'); };
+    } catch(e) {}
+  }
+  renderTodos(); refreshAllMiniWidgets('todo'); save();
+}
+
+// Small message at the bottom of the screen; click runs onClick if given
+function showToast(msg, onClick) {
+  const t = document.createElement('div');
+  t.className = 'hb-toast' + (onClick ? ' clickable' : '');
+  t.textContent = msg;
+  t.addEventListener('click', () => { t.remove(); if (onClick) onClick(); });
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), onClick ? 12000 : 4000);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2171,12 +2551,8 @@ function setupVault() {
   if (pwInput) pwInput.addEventListener('keydown', e => { if (e.key === 'Enter' && unlockBtn) unlockBtn.click(); });
 
   const lockBtn = document.getElementById('vault-lock-btn');
-  if (lockBtn) lockBtn.addEventListener('click', () => {
-    vaultUnlocked = false; masterPassword = null; syncVaultUI();
-    const t = document.getElementById('vault-lock-title');
-    if (t) t.textContent = 'Unlock Vault';
-    refreshAllMiniWidgets('vault');
-  });
+  // Vault and journal share one master password, so locking either locks both
+  if (lockBtn) lockBtn.addEventListener('click', lockAll);
 
   const addBtn    = document.getElementById('vault-add-btn');
   const searchEl  = document.getElementById('vault-search');
@@ -2388,9 +2764,7 @@ async function tryUnlockJournal() {
 }
 
 function lockJournal() {
-  journalUnlocked   = false;
-  currentJournalId  = null;
-  syncJournalUI();
+  lockAll();
 }
 
 function syncJournalUI() {
@@ -2724,19 +3098,132 @@ function setupSettings() {
     renderShortcuts(); renderApps(); save();
   });
 
-  on('change-master-pw-btn', 'click', async () => {
-    if (!vaultUnlocked) { alert('Please unlock your Vault first.'); return; }
-    const newPw = prompt('New master password:'); if (!newPw) return;
-    const conf  = prompt('Confirm new master password:'); if (newPw !== conf) { alert('Passwords do not match.'); return; }
-    if (newPw.length < 4) { alert('Must be at least 4 characters.'); return; }
-    try {
-      for (const entry of state.vault.entries) {
-        if(entry.encPassword){const p=await window.hb.decrypt(entry.encPassword,masterPassword);entry.encPassword=p?await window.hb.encrypt(p,newPw):null;}
-        if(entry.encNotes){const n=await window.hb.decrypt(entry.encNotes,masterPassword);entry.encNotes=n?await window.hb.encrypt(n,newPw):null;}
-      }
-      state.vault.verifier = await window.hb.encrypt('hb-verify', newPw);
-      masterPassword = newPw; await save(); alert('Master password changed.');
-    } catch(e) { console.error('Change pw error', e); }
+  // prompt() isn't supported in Electron, so this uses the inline modal
+  on('change-master-pw-btn', 'click', () => {
+    if (!masterPassword) { alert('Please unlock your Vault or Journal first.'); return; }
+    showInlineModal('New master password', 'At least 4 characters', newPw => {
+      if (newPw.length < 4) { alert('Must be at least 4 characters.'); return; }
+      showInlineModal('Confirm new master password', 'Type it again', async conf => {
+        if (conf !== newPw) { alert('Passwords do not match.'); return; }
+        try { await changeMasterPassword(newPw); alert('Master password changed.'); }
+        catch(e) { console.error('Change pw error', e); alert('Could not change the password: ' + e.message + '\nNothing was changed.'); }
+      }, 'password');
+    }, 'password');
+  });
+
+  const autoLockSel = document.getElementById('setting-autolock');
+  if (autoLockSel) autoLockSel.value = String(s.autoLockMinutes ?? 5);
+  set('setting-lock-on-hide', s.lockOnHide !== false);
+  set('setting-reminders',    s.todoReminders !== false);
+  on('setting-autolock',     'change', e => { s.autoLockMinutes = parseInt(e.target.value); save(); });
+  on('setting-lock-on-hide', 'change', e => { s.lockOnHide = e.target.checked; save(); });
+  on('setting-reminders',    'change', e => { s.todoReminders = e.target.checked; if (e.target.checked) askNotificationPermission(); save(); });
+
+  setupBackupSettings();
+}
+
+// Re-encrypts everything (vault entries and journal) with the new password. Every item is
+// decrypted first, so if any of them fails nothing is changed.
+async function changeMasterPassword(newPw) {
+  const dec = async obj => {
+    const v = await window.hb.decrypt(obj, masterPassword);
+    if (v == null) throw new Error('an item could not be decrypted');
+    return v;
+  };
+  const plainVault = [];
+  for (const e of state.vault.entries) {
+    plainVault.push({ pw: e.encPassword ? await dec(e.encPassword) : null, notes: e.encNotes ? await dec(e.encNotes) : null });
+  }
+  const plainDiary = [];
+  for (const e of state.diary.entries) plainDiary.push(e.encBody ? await dec(e.encBody) : null);
+
+  const enc = v => v == null ? null : window.hb.encrypt(v, newPw);
+  const vaultOut = [];
+  for (let i = 0; i < plainVault.length; i++) {
+    vaultOut.push({ ...state.vault.entries[i], encPassword: await enc(plainVault[i].pw), encNotes: await enc(plainVault[i].notes) });
+  }
+  const diaryOut = [];
+  for (let i = 0; i < plainDiary.length; i++) {
+    diaryOut.push({ ...state.diary.entries[i], encBody: plainDiary[i] == null ? '' : await enc(plainDiary[i]) });
+  }
+  state.vault.entries = vaultOut;
+  state.diary.entries = diaryOut;
+  state.vault.verifier = await window.hb.encrypt('hb-verify', newPw);
+  masterPassword = newPw;
+  await flushSave();
+}
+
+// ── Backups ───────────────────────────────────────────────────────
+function setupBackupSettings() {
+  const status = document.getElementById('backup-status');
+  const say = msg => { if (status) { status.textContent = msg; status.style.display = ''; } };
+  const desc = document.getElementById('backup-desc');
+  const folderBtn = document.getElementById('open-backups-btn');
+  if (window.hb.openBackups) {
+    if (desc) desc.textContent = 'Homeboard keeps a copy of your data every day for the last two weeks. You can also export a backup file to keep somewhere safe.';
+    folderBtn?.addEventListener('click', () => window.hb.openBackups());
+  } else {
+    if (desc) desc.textContent = 'Your data is stored in this browser only. Export a backup now and then so you don\'t lose it if the browser data is cleared.';
+    if (folderBtn) folderBtn.style.display = 'none';
+  }
+
+  document.getElementById('export-data-btn')?.addEventListener('click', async () => {
+    await flushSave();
+    const ok = await window.hb.exportData(JSON.stringify(state, null, 2));
+    if (ok) say('Backup exported.');
+  });
+
+  document.getElementById('import-data-btn')?.addEventListener('click', async () => {
+    const raw = await window.hb.importData(); if (!raw) return;
+    let data;
+    try { data = JSON.parse(raw); } catch { alert('That file isn\'t a valid backup.'); return; }
+    if (!data || typeof data !== 'object' || !('settings' in data || 'boardNotes' in data || 'todos' in data)) {
+      alert('That file doesn\'t look like a Homeboard backup.'); return;
+    }
+    if (!confirm('Replace everything on this Homeboard with the backup? Your current data will be overwritten.')) return;
+    state = { ...state, ...data };
+    await flushSave();
+    say('Imported! Reloading…');
+    setTimeout(() => location.reload(), 600);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AUTO-LOCK
+// ═══════════════════════════════════════════════════════════════
+
+let lastActivity = Date.now();
+
+async function lockAll() {
+  // Don't lose a journal entry that's mid-autosave
+  if (journalUnlocked && currentJournalId && journalAutoSaveTimer) {
+    clearTimeout(journalAutoSaveTimer); journalAutoSaveTimer = null;
+    await saveJournalEntry(true);
+  }
+  vaultUnlocked = false; journalUnlocked = false; masterPassword = null; currentJournalId = null;
+  closeVaultModal();
+  const jt = document.getElementById('journal-text'); if (jt) jt.value = '';
+  document.getElementById('journal-editor-inner')?.classList.add('hidden');
+  document.getElementById('journal-editor-placeholder')?.classList.remove('hidden');
+  const vl = document.getElementById('vault-list'); if (vl) vl.innerHTML = '';
+  const vs = document.getElementById('vault-search'); if (vs) vs.value = '';
+  if (state.vault.verifier) {
+    const t = document.getElementById('vault-lock-title'); if (t) t.textContent = 'Unlock Vault';
+    const d = document.getElementById('vault-lock-desc');  if (d) d.textContent = 'Enter your master password to access your saved passwords.';
+  }
+  syncVaultUI(); syncJournalUI();
+  ['vault', 'journal', 'journal-invite'].forEach(refreshAllMiniWidgets);
+}
+
+function setupAutoLock() {
+  ['mousemove', 'mousedown', 'keydown', 'wheel', 'touchstart'].forEach(ev =>
+    document.addEventListener(ev, () => { lastActivity = Date.now(); }, { passive: true }));
+  setInterval(() => {
+    const mins = Number(state.settings.autoLockMinutes ?? 5);
+    if (mins > 0 && (vaultUnlocked || journalUnlocked) && Date.now() - lastActivity > mins * 60000) lockAll();
+  }, 15000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && state.settings.lockOnHide !== false && (vaultUnlocked || journalUnlocked)) lockAll();
   });
 }
 

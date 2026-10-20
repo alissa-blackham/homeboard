@@ -30,19 +30,61 @@ const defaultData = {
   },
 };
 
+const backupsDir = path.join(userDataPath, 'backups');
+const bakPath = dataPath + '.bak';
+const BACKUPS_KEPT = 14;
+
+function readJson(p) {
+  return JSON.parse(fs.readFileSync(p, 'utf8'));
+}
+
+function withDefaults(raw) {
+  return { ...defaultData, ...raw, settings: { ...defaultData.settings, ...(raw.settings || {}) } };
+}
+
+// Newest daily backup first
+function dailyBackups() {
+  try {
+    return fs.readdirSync(backupsDir).filter(f => /^homeboard-\d{4}-\d{2}-\d{2}\.json$/.test(f)).sort().reverse()
+      .map(f => path.join(backupsDir, f));
+  } catch { return []; }
+}
+
 function loadData() {
-  if (fs.existsSync(dataPath)) {
+  if (!fs.existsSync(dataPath)) return { ...defaultData };
+  try { return withDefaults(readJson(dataPath)); } catch (e) {}
+
+  // Main file is unreadable: keep it aside and fall back to the newest good copy
+  try { fs.copyFileSync(dataPath, `${dataPath}.corrupt-${Date.now()}`); } catch (e) {}
+  for (const p of [bakPath, ...dailyBackups()]) {
     try {
-      const raw = JSON.parse(fs.readFileSync(dataPath, 'utf8'));
-      return { ...defaultData, ...raw, settings: { ...defaultData.settings, ...(raw.settings || {}) } };
+      const data = withDefaults(readJson(p));
+      fs.copyFileSync(p, dataPath);
+      return data;
     } catch (e) {}
   }
   return { ...defaultData };
 }
 
+// Write to a temp file then rename, so a crash mid-write can't leave a half-written file.
+// The previous good file is kept as .bak, plus one snapshot per day for the last two weeks.
 function saveData(data) {
-  try { fs.writeFileSync(dataPath, JSON.stringify(data, null, 2)); return true; }
-  catch (e) { return false; }
+  try {
+    const json = JSON.stringify(data, null, 2);
+    const tmpPath = dataPath + '.tmp';
+    fs.writeFileSync(tmpPath, json);
+    if (fs.existsSync(dataPath)) fs.copyFileSync(dataPath, bakPath);
+    fs.renameSync(tmpPath, dataPath);
+
+    const today = new Date().toISOString().slice(0, 10);
+    const daily = path.join(backupsDir, `homeboard-${today}.json`);
+    if (!fs.existsSync(daily)) {
+      fs.mkdirSync(backupsDir, { recursive: true });
+      fs.writeFileSync(daily, json);
+      dailyBackups().slice(BACKUPS_KEPT).forEach(p => { try { fs.unlinkSync(p); } catch (e) {} });
+    }
+    return true;
+  } catch (e) { return false; }
 }
 
 let win;
@@ -70,6 +112,8 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Lets Windows show to-do reminders as Homeboard notifications
+  if (process.platform === 'win32') app.setAppUserModelId('com.alissa.homeboard');
   createWindow();
   globalShortcut.register('Ctrl+Shift+H', () => {
     if (win) win.webContents.send('go-home');
@@ -79,7 +123,35 @@ app.on('window-all-closed', () => process.platform !== 'darwin' && app.quit());
 app.on('activate', () => !BrowserWindow.getAllWindows().length && createWindow());
 
 ipcMain.handle('data:load', () => loadData());
-ipcMain.handle('data:save', (_, data) => { saveData(data); return true; });
+ipcMain.handle('data:save', (_, data) => saveData(data));
+// Used on window unload, when there's no time to wait for an async reply
+ipcMain.on('data:save-sync', (e, data) => { e.returnValue = saveData(data); });
+
+ipcMain.handle('data:export', async (_, json) => {
+  const result = await dialog.showSaveDialog(win, {
+    title: 'Export Homeboard backup',
+    defaultPath: `homeboard-backup-${new Date().toISOString().slice(0, 10)}.json`,
+    filters: [{ name: 'Homeboard backup', extensions: ['json'] }],
+  });
+  if (result.canceled || !result.filePath) return false;
+  fs.writeFileSync(result.filePath, json);
+  return true;
+});
+
+ipcMain.handle('data:import', async () => {
+  const result = await dialog.showOpenDialog(win, {
+    title: 'Import Homeboard backup',
+    properties: ['openFile'],
+    filters: [{ name: 'Homeboard backup', extensions: ['json'] }],
+  });
+  if (result.canceled || !result.filePaths.length) return null;
+  return fs.readFileSync(result.filePaths[0], 'utf8');
+});
+
+ipcMain.handle('data:open-backups', () => {
+  fs.mkdirSync(backupsDir, { recursive: true });
+  return shell.openPath(backupsDir);
+});
 ipcMain.handle('app:open', (_, appPath) => shell.openPath(appPath));
 ipcMain.handle('window:minimize', () => win && win.minimize());
 ipcMain.handle('window:maximize', () => win && (win.isMaximized() ? win.unmaximize() : win.maximize()));

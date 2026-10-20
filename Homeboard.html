@@ -219,7 +219,8 @@ body.topbar-light #topbar-add-btn.open { background:var(--accent-light); border-
 #widget-apps { top:20px; left:20px; min-width:200px; max-width:300px; }
 #apps-grid { display:flex; flex-wrap:wrap; gap:8px; padding:10px 12px 0; min-height:20px; }
 .app-btn { display:flex; flex-direction:column; align-items:center; gap:5px; padding:8px 10px; border:1px solid var(--border); background:var(--surface-2); border-radius:10px; cursor:pointer; font-family:var(--font); font-size:11px; font-weight:600; color:var(--text-2); transition:all .14s; min-width:56px; }
-.app-btn .app-icon { font-size:20px; line-height:1; }
+.app-btn .app-icon { font-size:20px; line-height:1; display:flex; align-items:center; justify-content:center; height:28px; }
+.sc-img { width:28px; height:28px; object-fit:contain; display:block; }
 .app-btn:hover { background:var(--accent-light); border-color:var(--accent); color:var(--accent); transform:translateY(-1px); box-shadow:var(--sh-sm); }
 .widget-add-link { display:block; margin:6px 12px 10px; font-size:11px; color:var(--text-3); background:none; border:none; cursor:pointer; font-family:var(--font); padding:0; text-align:left; transition:color .12s; }
 .widget-add-link:hover { color:var(--accent); }
@@ -1252,7 +1253,16 @@ input[type="color"] { width:36px; height:32px; padding:2px; }
 #bg-image-row.hidden { display:none; }
 .shortcut-item { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; }
 .shortcut-item:last-child { border-bottom:none; }
-.s-icon { font-size:16px; width:20px; text-align:center; flex-shrink:0; }
+.s-icon { font-size:16px; width:30px; height:30px; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px dashed transparent; background:none; border-radius:7px; cursor:pointer; padding:0; transition:all .12s; }
+.s-icon:hover { border-color:var(--accent); background:var(--accent-light); }
+.s-icon .sc-img { width:22px; height:22px; }
+#shortcut-icon-btn { width:36px; height:34px; border:1px dashed var(--border); border-radius:7px; background:var(--surface-2); cursor:pointer; font-size:16px; padding:0; display:flex; align-items:center; justify-content:center; }
+#shortcut-icon-btn:hover { border-color:var(--accent); }
+#shortcut-icon-btn img { width:24px; height:24px; object-fit:contain; }
+.chip-icon { display:flex; align-items:center; }
+.chip-icon .sc-img { width:16px; height:16px; }
+.apppin-icon.has-img { box-shadow:none; }
+.apppin-icon img { width:44px; height:44px; object-fit:contain; pointer-events:none; filter:drop-shadow(0 3px 8px rgba(0,0,0,0.3)); }
 .s-name { font-weight:600; color:var(--text); flex:1; }
 .s-path { font-size:11px; color:var(--text-3); flex:2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .s-del { border:none; background:none; color:var(--text-3); cursor:pointer; font-size:14px; padding:2px 4px; border-radius:4px; transition:all .1s; }
@@ -1296,6 +1306,69 @@ input[type="color"] { width:36px; height:32px; padding:2px; }
 ::-webkit-scrollbar-thumb { background:var(--border-2,#d0c4bc); border-radius:4px; }
 ::-webkit-scrollbar-thumb:hover { background:var(--text-3); }
 
+#shortcut-browse-btn { padding:7px 12px; border:1px solid var(--border); border-radius:7px; background:var(--surface-2); cursor:pointer; font-family:var(--font); font-size:12px; font-weight:600; color:var(--text-2); }
+#shortcut-browse-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }
+
+/* ── Search (Ctrl+K) ───────────────────────────────────────── */
+#search-btn { display:flex; align-items:center; gap:6px; }
+#search-overlay { position:fixed; inset:0; z-index:2100; display:flex; align-items:flex-start; justify-content:center; padding-top:12vh; }
+#search-overlay.hidden { display:none; }
+#search-backdrop { position:absolute; inset:0; background:rgba(0,0,0,0.35); backdrop-filter:blur(2px); }
+#search-box { position:relative; width:min(620px, calc(100vw - 32px)); background:var(--surface); border-radius:14px; box-shadow:0 20px 60px rgba(0,0,0,0.28); overflow:hidden; display:flex; flex-direction:column; max-height:70vh; }
+#search-input { border:none; border-bottom:1px solid var(--border); padding:16px 20px; font-size:16px; font-family:var(--font); color:var(--text); background:transparent; outline:none; }
+#search-input::placeholder { color:var(--text-3); }
+#search-results { overflow-y:auto; padding:6px; }
+.search-hint { padding:22px 16px; text-align:center; font-size:13px; color:var(--text-3); line-height:1.7; }
+.search-hint span { font-size:12px; }
+.search-result { display:flex; align-items:center; gap:12px; width:100%; text-align:left; border:none; background:transparent; padding:9px 12px; border-radius:9px; cursor:pointer; font-family:var(--font); color:var(--text); }
+.search-result.sel { background:var(--accent-light); }
+.sr-icon { width:22px; text-align:center; font-size:15px; flex-shrink:0; }
+.sr-main { flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+.sr-title { font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sr-sub { font-size:11px; color:var(--text-3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.sr-kind { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.4px; color:var(--text-3); flex-shrink:0; }
+.search-result mark { background:var(--accent-light); color:var(--accent); font-weight:700; border-radius:3px; padding:0 1px; }
+.search-result.sel mark { background:transparent; }
+#search-footer { display:flex; gap:16px; justify-content:flex-end; padding:8px 16px; border-top:1px solid var(--border); font-size:11px; color:var(--text-3); background:var(--surface-2); }
+.hb-flash { animation:hb-flash 1.5s ease; }
+@keyframes hb-flash { 0%,40% { box-shadow:0 0 0 3px var(--accent), var(--sh-md); } 100% { box-shadow:0 0 0 0 transparent; } }
+
+/* ── To-do due dates ───────────────────────────────────────── */
+#todo-due, #todo-due-time { border:1px solid var(--border); border-radius:7px; padding:4px 8px; font-family:var(--font); font-size:12px; background:var(--surface); color:var(--text-2); outline:none; }
+#todo-due-time:disabled { opacity:.45; }
+.todo-due { border:none; border-radius:12px; padding:3px 9px; font-family:var(--font); font-size:11px; font-weight:700; cursor:pointer; white-space:nowrap; }
+.todo-due-add { background:transparent; opacity:0; font-size:13px; padding:2px 5px; transition:opacity .12s; }
+.todo-item:hover .todo-due-add { opacity:.6; }
+.todo-due-add:hover { opacity:1 !important; background:var(--accent-light); }
+.todo-due-picker { position:absolute; width:0; height:0; opacity:0; pointer-events:none; border:none; padding:0; }
+.todo-item { position:relative; }
+.due-overdue { background:#fde8e8; color:#8b2020; }
+.due-today   { background:#fdf0dc; color:#8a5300; }
+.due-soon    { background:#e9f2e4; color:#2f5a22; }
+.due-later   { background:var(--surface-2); color:var(--text-3); border:1px solid var(--border); }
+.mw-todo-due { font-size:9.5px; font-weight:700; padding:1px 6px; border-radius:9px; white-space:nowrap; flex-shrink:0; border:none; }
+
+/* ── Toast ─────────────────────────────────────────────────── */
+.hb-toast { position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#1c1916; color:#e8e0d8; padding:11px 20px; border-radius:10px; z-index:3000; font-size:13px; box-shadow:var(--sh-lg); max-width:min(560px, calc(100vw - 32px)); animation:hb-toast-in .25s ease; }
+.hb-toast.clickable { cursor:pointer; }
+@keyframes hb-toast-in { from { opacity:0; transform:translate(-50%, 8px); } }
+
+/* ── Weather widget ────────────────────────────────────────── */
+.mini-widget[data-wtype="weather"] { min-width:230px; }
+.weather-empty { padding:14px 12px 16px; text-align:center; font-size:12px; color:var(--text-3); display:flex; flex-direction:column; align-items:center; gap:8px; }
+.weather-now { display:flex; align-items:center; gap:12px; padding:10px 14px 2px; }
+.weather-big-icon { font-size:38px; line-height:1; }
+.weather-temp { font-size:32px; font-weight:800; color:var(--text); line-height:1; }
+.weather-desc { font-size:12px; color:var(--text-2); margin-top:3px; }
+.weather-meta { padding:6px 14px 0; font-size:11px; color:var(--text-3); }
+.weather-today { padding:2px 14px 0; font-size:11px; color:var(--text-2); font-weight:600; }
+.weather-forecast { display:flex; justify-content:space-between; gap:6px; padding:10px 12px 12px; margin-top:8px; border-top:1px solid var(--border); }
+.wf-day { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:11px; color:var(--text-2); }
+.wf-name { font-weight:700; }
+.wf-icon { font-size:17px; }
+.wf-temps i { font-style:normal; color:var(--text-3); }
+.wsm-text { border:1px solid var(--border); border-radius:8px; padding:5px 8px; font-size:12px; font-family:var(--font); background:var(--surface-2); color:var(--text); outline:none; width:150px; }
+.wsm-text:focus { border-color:var(--accent); }
 
 </style>
 </head>
@@ -1315,6 +1388,7 @@ input[type="color"] { width:36px; height:32px; padding:2px; }
       <button class="nav-link" data-panel="journal"   onclick="window.togglePanel('journal')">Journal</button>
     </nav>
     <div id="topbar-right">
+      <button id="search-btn" class="nav-link" title="Search everything (Ctrl+K)"><svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="7" cy="7" r="5"/><path d="M11 11l3.5 3.5"/></svg> Search</button>
       <div id="topbar-add-wrap">
         <button id="topbar-add-btn" title="Add to board">+</button>
         <div id="topbar-add-dropdown" class="hidden">
@@ -1353,6 +1427,9 @@ input[type="color"] { width:36px; height:32px; padding:2px; }
           </button>
           <button class="tad-item" data-action="widget-countdown">
             <span class="tad-icon">&#9650;</span>Countdown
+          </button>
+          <button class="tad-item" data-action="widget-weather">
+            <span class="tad-icon">&#9728;</span>Weather
           </button>
           <button class="tad-item" data-action="widget-moon">
             <span class="tad-icon">&#9790;</span>Moon Phase
@@ -1471,6 +1548,8 @@ input[type="color"] { width:36px; height:32px; padding:2px; }
     <div id="todo-body">
       <div id="todo-add-row">
         <input type="text" id="todo-input" placeholder="Add a task…" />
+        <input type="date" id="todo-due" title="Due date (optional)" />
+        <input type="time" id="todo-due-time" title="Remind me at (optional, otherwise 9am)" />
         <select id="todo-priority">
           <option value="normal">Normal</option>
           <option value="high">High priority</option>
@@ -1583,6 +1662,10 @@ input[type="color"] { width:36px; height:32px; padding:2px; }
           <label>Start with Windows</label>
           <label class="toggle"><input type="checkbox" id="setting-startup" /><span class="slider"></span></label>
         </div>
+        <div class="setting-row">
+          <label>To-do reminders</label>
+          <label class="toggle"><input type="checkbox" id="setting-reminders" checked /><span class="slider"></span></label>
+        </div>
       </section>
       <section class="settings-section">
         <h4>Board Background</h4>
@@ -1657,19 +1740,43 @@ input[type="color"] { width:36px; height:32px; padding:2px; }
       </section>
       <section class="settings-section">
         <h4>App Shortcuts</h4>
-        <p class="muted-text">Quick-launch buttons shown on the board.</p>
+        <p class="muted-text">Quick-launch buttons shown on the board. Click &#128444; to use your own picture as the icon, otherwise the app's real icon is used. Click an icon in the list to change it.</p>
         <div id="shortcuts-list"></div>
         <div id="add-shortcut-form">
+          <button type="button" id="shortcut-icon-btn" title="Choose an icon image (right-click to reset)">&#128444;</button>
           <input type="text" id="shortcut-name"  placeholder="Name" />
-          <input type="text" id="shortcut-emoji" placeholder="Icon" style="width:54px" />
+          <input type="text" id="shortcut-emoji" placeholder="Emoji" style="width:62px" />
           <input type="text" id="shortcut-path"  placeholder="Path to .exe" />
+          <button type="button" id="shortcut-browse-btn" title="Browse for an app">Browse&hellip;</button>
           <button id="add-shortcut-btn" class="action-btn">Add</button>
         </div>
       </section>
       <section class="settings-section">
         <h4>Vault Security</h4>
+        <div class="setting-row">
+          <label>Lock after</label>
+          <select id="setting-autolock">
+            <option value="1">1 minute idle</option>
+            <option value="5">5 minutes idle</option>
+            <option value="15">15 minutes idle</option>
+            <option value="30">30 minutes idle</option>
+            <option value="0">Never</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label>Lock when minimised</label>
+          <label class="toggle"><input type="checkbox" id="setting-lock-on-hide" checked /><span class="slider"></span></label>
+        </div>
         <button id="change-master-pw-btn" class="ghost-btn full-w">Change master password</button>
         <p class="muted-text" style="margin-top:8px">If forgotten, vault data cannot be recovered.</p>
+      </section>
+      <section class="settings-section">
+        <h4>Backup</h4>
+        <p class="muted-text" id="backup-desc" style="margin-bottom:10px"></p>
+        <button id="export-data-btn" class="ghost-btn full-w" style="margin-bottom:8px">Export backup&hellip;</button>
+        <button id="import-data-btn" class="ghost-btn full-w" style="margin-bottom:8px">Import backup&hellip;</button>
+        <button id="open-backups-btn" class="ghost-btn full-w">Open daily backups folder</button>
+        <p id="backup-status" class="muted-text" style="margin-top:8px;display:none"></p>
       </section>
     </div>
   </div>
@@ -1710,6 +1817,16 @@ input[type="color"] { width:36px; height:32px; padding:2px; }
       <button id="inline-modal-ok" class="action-btn">OK</button>
       <button id="inline-modal-cancel" class="ghost-btn" onclick="window.closeInlineModal()">Cancel</button>
     </div>
+  </div>
+</div>
+
+<!-- Search (Ctrl+K) -->
+<div id="search-overlay" class="hidden">
+  <div id="search-backdrop" onclick="window.closeSearch()"></div>
+  <div id="search-box">
+    <input id="search-input" type="text" placeholder="Search everything&hellip;" autocomplete="off" spellcheck="false" />
+    <div id="search-results"></div>
+    <div id="search-footer"><span>&uarr;&darr; move</span><span>Enter open</span><span>Esc close</span></div>
   </div>
 </div>
 
@@ -1826,17 +1943,51 @@ input[type="color"] { width:36px; height:32px; padding:2px; }
 
   const noop = () => Promise.resolve();
 
+  function exportData(json) {
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(new Blob([json], { type: 'application/json' })),
+      download: 'homeboard-backup-' + new Date().toISOString().slice(0, 10) + '.json',
+    });
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    return Promise.resolve(true);
+  }
+
+  function importData() {
+    return new Promise(resolve => {
+      const input = Object.assign(document.createElement('input'), { type: 'file', accept: '.json,application/json' });
+      input.style.display = 'none';
+      document.body.appendChild(input);
+      input.onchange = () => {
+        const file = input.files[0]; input.remove();
+        if (!file) { resolve(null); return; }
+        const reader = new FileReader();
+        reader.onload  = () => resolve(reader.result);
+        reader.onerror = () => resolve(null);
+        reader.readAsText(file);
+      };
+      input.click();
+    });
+  }
+
   window.hb = {
     loadData:       () => Promise.resolve(loadData()),
     saveData:       data => Promise.resolve(saveData(data)),
+    saveDataSync:   saveData,
+    exportData:     exportData,
+    importData:     importData,
     openApp:        openApp,
     minimize:       noop, maximize: noop, close: noop, setStartup: noop,
     openImage:      () => openFilePicker('image/*'),
     openBoardImage: () => openFilePicker('image/*'),
+    openShortcutIcon: () => openFilePicker('image/*'),
+    pickApp:        () => Promise.resolve(null),
+    fileIcon:       () => Promise.resolve(null),
     encrypt:        (t, p) => hbEncrypt(t, p),
     decrypt:        (o, p) => hbDecrypt(o, p),
   };
 
+  // Desktop-only bits: window buttons, start-with-Windows, app shortcuts
   document.addEventListener('DOMContentLoaded', () => {
     const wc = document.getElementById('win-controls');
     if (wc) wc.style.display = 'none';
@@ -1846,52 +1997,6 @@ input[type="color"] { width:36px; height:32px; padding:2px; }
     if (appsWidget) appsWidget.style.display = 'none';
     const sc = document.getElementById('shortcuts-list');
     if (sc) { const sec = sc.closest('.settings-section'); if (sec) sec.style.display = 'none'; }
-
-    const settingsBody = document.getElementById('settings-body');
-    if (settingsBody) {
-      const sec = document.createElement('section');
-      sec.className = 'settings-section';
-      sec.innerHTML =
-        '<h4>Data Backup</h4>' +
-        '<p class="muted-text" style="margin-bottom:10px">Export your board data to a file, or import a backup. Your data is stored in this browser only.</p>' +
-        '<button id="web-export-btn" class="ghost-btn full-w" style="margin-bottom:8px">Export dataâ€¦</button>' +
-        '<button id="web-import-btn" class="ghost-btn full-w">Import dataâ€¦</button>' +
-        '<p id="web-import-status" class="muted-text" style="margin-top:8px;display:none"></p>';
-      settingsBody.appendChild(sec);
-
-      document.getElementById('web-export-btn').addEventListener('click', () => {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        if (!raw) { alert('No data to export yet.'); return; }
-        const blob = new Blob([raw], { type: 'application/json' });
-        const a = Object.assign(document.createElement('a'), {
-          href: URL.createObjectURL(blob),
-          download: 'homeboard-backup-' + new Date().toISOString().slice(0,10) + '.json'
-        });
-        a.click(); URL.revokeObjectURL(a.href);
-      });
-
-      document.getElementById('web-import-btn').addEventListener('click', () => {
-        const input = Object.assign(document.createElement('input'), { type:'file', accept:'.json', style:'display:none' });
-        document.body.appendChild(input);
-        input.onchange = () => {
-          const file = input.files[0]; document.body.removeChild(input);
-          if (!file) return;
-          const reader = new FileReader();
-          reader.onload = () => {
-            try {
-              JSON.parse(reader.result);
-              if (!confirm('Replace all current data with this backup?')) return;
-              localStorage.setItem(STORAGE_KEY, reader.result);
-              const st = document.getElementById('web-import-status');
-              if (st) { st.style.display=''; st.textContent='Imported! Reloadingâ€¦'; }
-              setTimeout(() => location.reload(), 1000);
-            } catch { alert('Invalid backup file.'); }
-          };
-          reader.readAsText(file);
-        };
-        input.click();
-      });
-    }
   });
 })();
 </script>
@@ -1929,6 +2034,12 @@ window.togglePanel = function (name) {
   }
 };
 
+// Like togglePanel, but never closes a panel that's already open
+window.openPanel = function (name) {
+  const panel = document.getElementById('panel-' + name);
+  if (panel && panel.classList.contains('hidden')) window.togglePanel(name);
+};
+
 // ═══════════════════════════════════════════════════════════════
 // CONSTANTS
 // ═══════════════════════════════════════════════════════════════
@@ -1955,6 +2066,7 @@ const NOTE_COLORS = [
 ];
 
 const KB_SHORTCUTS = [
+  { keys:'Ctrl+K',       label:'Search everything' },
   { keys:'Ctrl+Shift+H', label:'Home / close panel' },
   { keys:'Ctrl+Shift+B', label:'Browser' },
   { keys:'Ctrl+Shift+N', label:'Notes' },
@@ -2061,16 +2173,21 @@ const WIDGET_SETTINGS = {
   habits: [
     { key:'habitsShowCount', label:'Show completion count', type:'toggle', default:false },
   ],
+  weather: [
+    { key:'city',  label:'City or town', type:'text', placeholder:'e.g. Edinburgh' },
+    { key:'units', label:'Units', type:'select', options:[{v:'c',l:'°C, km/h'},{v:'f',l:'°F, mph'}] },
+  ],
 };
 
 // ── Inline modal (replaces prompt()) ─────────────────────────────
 window.closeInlineModal = function() {
   document.getElementById('inline-modal')?.classList.add('hidden');
 };
-function showInlineModal(title, placeholder, onOk) {
+function showInlineModal(title, placeholder, onOk, inputType) {
   const m = document.getElementById('inline-modal'); if (!m) return;
   document.getElementById('inline-modal-title').textContent = title;
   const inp = document.getElementById('inline-modal-input');
+  inp.type = inputType || 'text';
   inp.value = ''; inp.placeholder = placeholder || '';
   m.classList.remove('hidden');
   setTimeout(() => inp.focus(), 50);
@@ -2086,7 +2203,7 @@ window.closeWidgetSettings = function() {
 function openWidgetSettings(w) {
   const schema = WIDGET_SETTINGS[w.type]; if (!schema || !schema.length) return;
   const modal = document.getElementById('widget-settings-modal'); if (!modal) return;
-  const labels = { clock:'Clock', moon:'Moon Phase', pomodoro:'Pomodoro', calendar:'Calendar', habits:'Habit Tracker' };
+  const labels = { clock:'Clock', moon:'Moon Phase', pomodoro:'Pomodoro', calendar:'Calendar', habits:'Habit Tracker', weather:'Weather' };
   document.getElementById('wsm-title').textContent = (labels[w.type] || w.type) + ' Settings';
   const body = document.getElementById('wsm-body'); body.innerHTML = '';
   if (!w.opts) w.opts = {};
@@ -2104,6 +2221,9 @@ function openWidgetSettings(w) {
     } else if (field.type === 'number') {
       row.innerHTML = '<label class="wsm-label">' + field.label + '</label><input type="number" class="wsm-number" value="' + (cur ?? field.default ?? '') + '" min="' + (field.min||1) + '" max="' + (field.max||99) + '" />';
       row.querySelector('input').onchange = e => { w.opts[field.key] = parseInt(e.target.value) || field.default; save(); refreshMiniWidget(w); };
+    } else if (field.type === 'text') {
+      row.innerHTML = '<label class="wsm-label">' + field.label + '</label><input type="text" class="wsm-text" value="' + esc(cur ?? '') + '" placeholder="' + esc(field.placeholder || '') + '" />';
+      row.querySelector('input').onchange = e => { w.opts[field.key] = e.target.value.trim(); save(); refreshMiniWidget(w); };
     }
     body.appendChild(row);
   });
@@ -2149,7 +2269,26 @@ let editingVaultId   = null;
 let todoFilter       = 'all';
 let activePinEl      = null;
 
-const save = () => window.hb.saveData(state);
+// Saves are batched: a burst of edits (typing, dragging) is written once, shortly after it stops
+let saveTimer = null, saveWaiters = [];
+function save() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(flushSave, 400);
+  return new Promise(resolve => saveWaiters.push(resolve));
+}
+async function flushSave() {
+  clearTimeout(saveTimer); saveTimer = null;
+  const waiters = saveWaiters; saveWaiters = [];
+  const ok = await window.hb.saveData(state);
+  waiters.forEach(r => r(ok));
+  return ok;
+}
+// On close there's no time for an async write, so anything pending is written synchronously
+window.addEventListener('beforeunload', () => {
+  if (!saveTimer) return;
+  clearTimeout(saveTimer); saveTimer = null;
+  if (window.hb.saveDataSync) window.hb.saveDataSync(state); else window.hb.saveData(state);
+});
 
 // ═══════════════════════════════════════════════════════════════
 // INIT
@@ -2166,6 +2305,8 @@ async function init() {
         diary:        { entries: [], ...(loaded.diary || {}) },
         boardDecors:  loaded.boardDecors || [],
       };
+      // migrate shortcuts that were saved without ids
+      state.shortcuts = (state.shortcuts || []).map(s => s.id ? s : { ...s, id: uid() });
     }
   } catch (e) { console.error('Load error', e); }
 
@@ -2180,6 +2321,9 @@ async function init() {
   setupVault();
   setupJournal();
   setupSettings();
+  setupSearch();
+  setupAutoLock();
+  setupReminders();
 
   renderApps();
   renderProjects();
@@ -2189,8 +2333,154 @@ async function init() {
   applyWidgetPositions();
   applyHiddenWidgets();
 
+  // Weather widgets use a cache, so this only refetches once the data is ~25 minutes old
+  setInterval(() => refreshAllMiniWidgets('weather'), 10 * 60000);
+
   // Always start on the board
   window.goHome();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SEARCH (Ctrl+K)
+// ═══════════════════════════════════════════════════════════════
+
+let searchResults = [], searchSel = 0;
+
+function setupSearch() {
+  const input = document.getElementById('search-input');
+  document.getElementById('search-btn')?.addEventListener('click', openSearch);
+  if (!input) return;
+  input.addEventListener('input', () => { searchSel = 0; renderSearch(input.value); });
+  input.addEventListener('keydown', e => {
+    e.stopPropagation();   // keep the global Escape/shortcut handler out of it
+    if (e.key === 'Escape') closeSearch();
+    else if (e.key === 'ArrowDown') { e.preventDefault(); moveSearchSel(1); }
+    else if (e.key === 'ArrowUp')   { e.preventDefault(); moveSearchSel(-1); }
+    else if (e.key === 'Enter' && searchResults[searchSel]) { const r = searchResults[searchSel]; closeSearch(); r.open(); }
+  });
+}
+
+function openSearch() {
+  const ov = document.getElementById('search-overlay'); if (!ov) return;
+  ov.classList.remove('hidden');
+  const input = document.getElementById('search-input');
+  input.value = ''; searchSel = 0; renderSearch('');
+  setTimeout(() => input.focus(), 30);
+}
+window.closeSearch = closeSearch;
+function closeSearch() { document.getElementById('search-overlay')?.classList.add('hidden'); }
+
+function moveSearchSel(d) {
+  if (!searchResults.length) return;
+  searchSel = (searchSel + d + searchResults.length) % searchResults.length;
+  document.querySelectorAll('.search-result').forEach((el, i) => el.classList.toggle('sel', i === searchSel));
+  document.querySelector('.search-result.sel')?.scrollIntoView({ block: 'nearest' });
+}
+
+// Short excerpt around the first match, with the match highlighted
+function searchSnippet(text, q) {
+  text = String(text || '').replace(/\s+/g, ' ');
+  const i = text.toLowerCase().indexOf(q);
+  if (i < 0) return esc(text.slice(0, 90));
+  const start = Math.max(0, i - 35);
+  return (start ? '…' : '') + esc(text.slice(start, i)) + '<mark>' + esc(text.slice(i, i + q.length)) + '</mark>' + esc(text.slice(i + q.length, i + q.length + 60));
+}
+
+function collectSearchResults(q) {
+  const out = [];
+  const has = s => String(s || '').toLowerCase().includes(q);
+  const hit = (...fields) => fields.find(has);
+
+  state.todos.forEach(t => {
+    if (!has(t.text)) return;
+    out.push({ kind: t.done ? 'Done' : 'To-do', icon: '✓', title: searchSnippet(t.text, q), sub: t.due ? fmtDue(t) : '', open: () => {
+      todoFilter = 'all';
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.toggle('active', b.dataset.filter === 'all'));
+      renderTodos(); window.openPanel('todos');
+      flashEl(document.querySelector('.todo-item[data-id="' + t.id + '"]'));
+    }});
+  });
+
+  state.boardNotes.forEach(n => {
+    const f = n.type === 'image' ? hit(n.caption) : hit(n.title, n.content);
+    if (f == null) return;
+    out.push({ kind: 'Board', icon: n.type === 'image' ? '🖼' : '🗒', title: searchSnippet(f, q),
+      sub: n.type === 'image' ? 'Image pin' : (n.title && f !== n.title ? esc(n.title) : 'Sticky note'), open: () => {
+        window.goHome();
+        const el = document.querySelector('#board [data-id="' + n.id + '"]');
+        if (el) { el.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' }); flashEl(el); }
+      }});
+  });
+
+  state.projects.forEach(p => {
+    if (has(p.name)) out.push({ kind: 'Project', icon: '📁', title: searchSnippet(p.name, q), sub: p.notes.length + ' notes', open: () => {
+      currentProjectId = p.id; renderProjects(); window.openPanel('notes');
+    }});
+    p.notes.forEach(note => {
+      const f = hit(note.title, note.content); if (f == null) return;
+      out.push({ kind: 'Note', icon: '✎', title: searchSnippet(f, q), sub: esc(p.name) + (f !== note.title ? ' · ' + esc(note.title || 'Untitled') : ''), open: () => {
+        currentProjectId = p.id; currentNoteId = note.id;
+        document.getElementById('note-title').value   = note.title;
+        document.getElementById('note-content').value = note.content;
+        showEditor(true); renderProjects(); window.openPanel('notes');
+      }});
+    });
+  });
+
+  // Only names and usernames are searchable; passwords and notes stay encrypted
+  state.vault.entries.forEach(e => {
+    const f = hit(e.name, e.username); if (f == null) return;
+    out.push({ kind: 'Vault', icon: '🔒', title: has(e.name) ? searchSnippet(e.name, q) : esc(e.name), sub: has(e.username) ? searchSnippet(e.username, q) : esc(e.username || ''), open: () => {
+      window.openPanel('vault');
+      const s = document.getElementById('vault-search');
+      if (vaultUnlocked && s) { s.value = e.name; renderVaultEntries(e.name.toLowerCase()); }
+    }});
+  });
+
+  if (journalUnlocked) {
+    state.diary.entries.forEach(e => {
+      if (!has(e.preview)) return;
+      out.push({ kind: 'Journal', icon: '📖', title: searchSnippet(e.preview, q), sub: fmtJournalSidebarDate(e.createdAt), open: () => {
+        window.openPanel('journal'); openJournalEntry(e.id);
+      }});
+    });
+  }
+
+  state.shortcuts.forEach(s => {
+    if (!has(s.name)) return;
+    out.push({ kind: 'App', icon: '🚀', title: searchSnippet(s.name, q), sub: 'Launch', open: () => window.hb.openApp(s.path) });
+  });
+
+  return out.slice(0, 60);
+}
+
+function renderSearch(raw) {
+  const list = document.getElementById('search-results'); if (!list) return;
+  const q = raw.trim().toLowerCase();
+  if (!q) {
+    searchResults = [];
+    list.innerHTML = '<div class="search-hint">Search to-dos, sticky notes, project notes, vault names' + (journalUnlocked ? ', journal' : '') + ' and apps.' +
+      (journalUnlocked ? '' : '<br><span>Unlock your journal to search it too.</span>') + '</div>';
+    return;
+  }
+  searchResults = collectSearchResults(q);
+  if (!searchResults.length) { list.innerHTML = '<div class="search-hint">Nothing matches “' + esc(raw.trim()) + '”.</div>'; return; }
+  list.innerHTML = '';
+  searchResults.forEach((r, i) => {
+    const el = document.createElement('button');
+    el.className = 'search-result' + (i === searchSel ? ' sel' : '');
+    el.innerHTML = '<span class="sr-icon">' + r.icon + '</span><span class="sr-main"><span class="sr-title">' + r.title + '</span>' +
+      (r.sub ? '<span class="sr-sub">' + r.sub + '</span>' : '') + '</span><span class="sr-kind">' + r.kind + '</span>';
+    el.addEventListener('click', () => { closeSearch(); r.open(); });
+    el.addEventListener('mousemove', () => { if (searchSel !== i) { searchSel = i; moveSearchSel(0); } });
+    list.appendChild(el);
+  });
+}
+
+function flashEl(el) {
+  if (!el) return;
+  el.classList.remove('hb-flash'); void el.offsetWidth; el.classList.add('hb-flash');
+  setTimeout(() => el.classList.remove('hb-flash'), 1600);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2200,7 +2490,7 @@ async function init() {
 function setupTitlebar() {
   document.getElementById('btn-minimize').onclick = () => window.hb.minimize();
   document.getElementById('btn-maximize').onclick = () => window.hb.maximize();
-  document.getElementById('btn-close').onclick    = () => window.hb.close();
+  document.getElementById('btn-close').onclick    = async () => { await flushSave(); window.hb.close(); };
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -2210,6 +2500,7 @@ function setupTitlebar() {
 function setupKeyboardShortcuts() {
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { window.goHome(); return; }
+    if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'k') { e.preventDefault(); openSearch(); return; }
     if (e.ctrlKey && e.shiftKey) {
       const k = e.key.toUpperCase();
       if      (k === 'H') { e.preventDefault(); window.goHome(); }
@@ -2863,8 +3154,8 @@ function appendDecor(d) {
   } else if (d.type === 'apppin') {
     const iconBg = d.color || '#9c6b5e';
     el.innerHTML =
-      '<div class="apppin-icon" style="background:' + iconBg + '" title="Open ' + esc(d.label||'') + '">' +
-        esc(d.icon || '?') +
+      '<div class="apppin-icon' + (d.iconImage ? ' has-img' : '') + '" style="background:' + iconBg + '" title="Open ' + esc(d.label||'') + '">' +
+        (d.iconImage ? '<img src="' + esc(d.iconImage) + '" alt="" draggable="false">' : esc(d.icon || '?')) +
       '</div>' +
       '<div class="apppin-label">' + esc(d.label || 'App') + '</div>' +
       '<button class="decor-del apppin-del">&#10005;</button>';
@@ -3090,9 +3381,9 @@ function renderAestheticTab(tab) {
       const chips = document.createElement('div'); chips.className = 'al-shortcuts-quick';
       state.shortcuts.forEach(sc => {
         const chip = document.createElement('button'); chip.className = 'al-shortcut-chip';
-        chip.innerHTML = '<span>' + esc(sc.emoji || sc.name[0]) + '</span><span>' + esc(sc.name) + '</span>';
+        chip.innerHTML = '<span class="chip-icon">' + shortcutIconHtml(sc, sc.name[0]) + '</span><span>' + esc(sc.name) + '</span>';
         chip.onclick = () => {
-          const d = { id:uid(), type:'apppin', icon:sc.emoji||sc.name[0], label:sc.name, path:sc.path, color:'#9c6b5e',
+          const d = { id:uid(), type:'apppin', icon:sc.emoji||sc.name[0], iconImage:sc.iconImage||null, label:sc.name, path:sc.path, color:sc.iconImage?'transparent':'#9c6b5e',
             x:100+Math.round(Math.random()*220), y:80+Math.round(Math.random()*140) };
           state.boardDecors.push(d); appendDecor(d); save();
           window.closeAestheticLibrary();
@@ -3183,7 +3474,7 @@ function renderApps() {
   state.shortcuts.forEach(app => {
     const btn = document.createElement('button');
     btn.className = 'app-btn'; btn.title = app.path;
-    btn.innerHTML = '<span class="app-icon">' + esc(app.emoji || '📁') + '</span><span>' + esc(app.name) + '</span>';
+    btn.innerHTML = '<span class="app-icon">' + shortcutIconHtml(app) + '</span><span>' + esc(app.name) + '</span>';
     btn.addEventListener('click', () => window.hb.openApp(app.path));
     grid.appendChild(btn);
   });
@@ -3230,7 +3521,7 @@ function appendBoardWidget(w) {
   if (w.height) s += ';height:' + w.height + 'px';
   el.style.cssText = s;
 
-  const titles  = { todo:'To-Do', notes:'Notes', vault:'Vault', shortcuts:'Shortcuts', calendar:'Calendar', pomodoro:'Pomodoro', habits:'Habits', countdown:'Countdown', moon:'Moon Phase', journal:'Journal', 'journal-invite':'Write Today', vinyl:'Now Playing', quote:'Quote', photostrip:'Photo Strip' };
+  const titles  = { todo:'To-Do', notes:'Notes', vault:'Vault', shortcuts:'Shortcuts', calendar:'Calendar', pomodoro:'Pomodoro', habits:'Habits', countdown:'Countdown', moon:'Moon Phase', journal:'Journal', 'journal-invite':'Write Today', vinyl:'Now Playing', quote:'Quote', photostrip:'Photo Strip', weather:'Weather' };
   const panels  = { todo:'todos', notes:'notes', vault:'vault', journal:'journal', 'journal-invite':'journal' };
 
   let footerHTML = '';
@@ -3297,6 +3588,7 @@ function refreshMiniWidget(w) {
     if (w.type === 'vinyl')          renderVinylWidget(w.id);
     if (w.type === 'quote')          renderQuoteWidget(w.id);
     if (w.type === 'photostrip')     renderPhotoStripWidget(w.id);
+    if (w.type === 'weather')        renderWeatherWidget(w.id);
   } catch(e) { console.error('Widget refresh error', e); }
 }
 
@@ -3307,14 +3599,15 @@ function refreshAllMiniWidgets(type) {
 function refreshMiniTodo(wid) {
   const body = document.getElementById('mw-body-' + wid); if (!body) return;
   body.innerHTML = '';
-  const active = state.todos.filter(t => !t.done).slice(0,7);
+  const active = sortTodos(state.todos.filter(t => !t.done)).slice(0,7);
   const doneCount = state.todos.filter(t => t.done).length;
   if (!active.length && !state.todos.length) {
     body.innerHTML = '<div class="mw-empty">No tasks yet.</div>'; return;
   }
   active.forEach(todo => {
     const el = document.createElement('div'); el.className = 'mw-todo-item';
-    el.innerHTML = '<input type="checkbox" /><span class="mw-todo-text">' + esc(todo.text) + '</span>';
+    el.innerHTML = '<input type="checkbox" /><span class="mw-todo-text">' + esc(todo.text) + '</span>' +
+      (todo.due ? '<span class="mw-todo-due ' + dueClass(todo) + '">' + esc(fmtDue(todo)) + '</span>' : '');
     el.querySelector('input').addEventListener('change', e => {
       const t = state.todos.find(t => t.id === todo.id);
       if (t) { t.done = e.target.checked; renderTodos(); save(); }
@@ -3855,6 +4148,79 @@ window.restoreBuiltinWidgets = function() {
   updateRestoreBtn();
 };
 
+// ── Weather (Open-Meteo: free, no API key) ──────────────────────
+const WEATHER_CODES = {
+  0:['Clear','☀️'], 1:['Mainly clear','🌤️'], 2:['Partly cloudy','⛅'], 3:['Overcast','☁️'],
+  45:['Fog','🌫️'], 48:['Freezing fog','🌫️'],
+  51:['Light drizzle','🌦️'], 53:['Drizzle','🌦️'], 55:['Heavy drizzle','🌧️'], 56:['Freezing drizzle','🌧️'], 57:['Freezing drizzle','🌧️'],
+  61:['Light rain','🌦️'], 63:['Rain','🌧️'], 65:['Heavy rain','🌧️'], 66:['Freezing rain','🌧️'], 67:['Freezing rain','🌧️'],
+  71:['Light snow','🌨️'], 73:['Snow','🌨️'], 75:['Heavy snow','❄️'], 77:['Snow grains','🌨️'],
+  80:['Showers','🌦️'], 81:['Showers','🌧️'], 82:['Heavy showers','⛈️'], 85:['Snow showers','🌨️'], 86:['Snow showers','❄️'],
+  95:['Thunderstorm','⛈️'], 96:['Thunderstorm, hail','⛈️'], 99:['Thunderstorm, hail','⛈️'],
+};
+const WEATHER_MAX_AGE = 25 * 60000;
+const weatherCache = {};   // widget id → { key, at, data }
+
+async function renderWeatherWidget(wid) {
+  const body = document.getElementById('mw-body-' + wid); if (!body) return;
+  const w = state.boardWidgets.find(x => x.id === wid); if (!w) return;
+  if (!w.opts) w.opts = {};
+  const opts = w.opts;
+  if (!opts.city) {
+    body.innerHTML = '<div class="weather-empty"><div class="weather-big-icon">🌤️</div><p>Where are you?</p><button class="action-btn">Set your town</button></div>';
+    body.querySelector('button').onclick = () => openWidgetSettings(w);
+    return;
+  }
+  const key = opts.city + '|' + (opts.units || 'c');
+  const cached = weatherCache[wid];
+  if (cached && cached.key === key && Date.now() - cached.at < WEATHER_MAX_AGE) { drawWeather(body, opts, cached.data); return; }
+  if (!cached || cached.key !== key) body.innerHTML = '<div class="mw-empty">Fetching the weather…</div>';
+  try {
+    if (!opts.geo || opts.geo.q !== opts.city) {
+      const g = await fetch('https://geocoding-api.open-meteo.com/v1/search?count=1&language=en&name=' + encodeURIComponent(opts.city)).then(r => r.json());
+      const place = g.results && g.results[0];
+      if (!place) { body.innerHTML = '<div class="mw-empty">Couldn\'t find “' + esc(opts.city) + '”.<br>Try another spelling in ⚙ settings.</div>'; return; }
+      opts.geo = { q: opts.city, lat: place.latitude, lon: place.longitude, name: place.name + (place.country_code ? ', ' + place.country_code : '') };
+      save();
+    }
+    const units = opts.units === 'f' ? '&temperature_unit=fahrenheit&wind_speed_unit=mph' : '';
+    const data = await fetch('https://api.open-meteo.com/v1/forecast?latitude=' + opts.geo.lat + '&longitude=' + opts.geo.lon +
+      '&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m,is_day' +
+      '&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=auto&forecast_days=4' + units).then(r => r.json());
+    if (!data.current) throw new Error('bad response');
+    weatherCache[wid] = { key, at: Date.now(), data };
+    drawWeather(body, opts, data);
+  } catch(e) {
+    if (cached && cached.key === key) drawWeather(body, opts, cached.data);
+    else body.innerHTML = '<div class="mw-empty">Weather isn\'t available right now.<br>Are you offline?</div>';
+  }
+}
+
+function drawWeather(body, opts, d) {
+  const c = d.current, wind = opts.units === 'f' ? 'mph' : 'km/h';
+  const [desc, icon] = WEATHER_CODES[c.weather_code] || ['—', '🌡️'];
+  const nightIcon = (c.weather_code <= 1 && !c.is_day) ? '🌙' : icon;
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dl = d.daily;
+  const forecast = dl.time.slice(1, 4).map((t, i) => {
+    const k = i + 1, [y, m, dd] = t.split('-').map(Number);
+    return '<div class="wf-day"><span class="wf-name">' + days[new Date(y, m - 1, dd).getDay()] + '</span>' +
+      '<span class="wf-icon">' + (WEATHER_CODES[dl.weather_code[k]] || ['', '🌡️'])[1] + '</span>' +
+      '<span class="wf-temps">' + Math.round(dl.temperature_2m_max[k]) + '° <i>' + Math.round(dl.temperature_2m_min[k]) + '°</i></span></div>';
+  }).join('');
+  body.innerHTML =
+    '<div class="weather-now">' +
+      '<div class="weather-big-icon">' + nightIcon + '</div>' +
+      '<div><div class="weather-temp">' + Math.round(c.temperature_2m) + '°</div>' +
+      '<div class="weather-desc">' + esc(desc) + '</div></div>' +
+    '</div>' +
+    '<div class="weather-meta">' + esc(opts.geo?.name || opts.city) + ' · feels ' + Math.round(c.apparent_temperature) + '° · ' +
+      Math.round(c.wind_speed_10m) + ' ' + wind +
+      (dl.precipitation_probability_max?.[0] != null ? ' · ' + dl.precipitation_probability_max[0] + '% rain' : '') + '</div>' +
+    '<div class="weather-today">Today ' + Math.round(dl.temperature_2m_max[0]) + '° / ' + Math.round(dl.temperature_2m_min[0]) + '°</div>' +
+    '<div class="weather-forecast">' + forecast + '</div>';
+}
+
 function applyHiddenWidgets() {
   const hidden = state.settings.hiddenWidgets || [];
   hidden.forEach(id => {
@@ -3990,13 +4356,23 @@ function setupTodos() {
   const input  = document.getElementById('todo-input');
   const addBtn = document.getElementById('todo-add-btn');
   const pri    = document.getElementById('todo-priority');
+  const due    = document.getElementById('todo-due');
+  const dueT   = document.getElementById('todo-due-time');
   const add = () => {
     if (!input) return;
     const text = input.value.trim(); if (!text) return;
-    state.todos.push({ id:uid(), text, done:false, priority:pri ? pri.value : 'normal' });
+    const todo = { id:uid(), text, done:false, priority:pri ? pri.value : 'normal' };
+    if (due && due.value) { todo.due = due.value; todo.dueTime = dueT ? dueT.value : ''; askNotificationPermission(); }
+    state.todos.push(todo);
     input.value = ''; if (pri) pri.value = 'normal';
+    if (due) due.value = ''; if (dueT) dueT.value = '';
     renderTodos(); refreshAllMiniWidgets('todo'); save();
   };
+  // A time only makes sense with a date
+  if (due && dueT) {
+    const syncTime = () => { dueT.disabled = !due.value; if (!due.value) dueT.value = ''; };
+    due.addEventListener('change', syncTime); syncTime();
+  }
   if (addBtn) addBtn.addEventListener('click', add);
   if (input)  input.addEventListener('keydown', e => e.key === 'Enter' && add());
   document.querySelectorAll('.filter-btn').forEach(btn => {
@@ -4010,21 +4386,132 @@ function setupTodos() {
 function renderTodos() {
   const list = document.getElementById('todo-list'); if (!list) return;
   list.innerHTML = '';
-  const vis = state.todos.filter(t => todoFilter==='all' ? true : todoFilter==='active' ? !t.done : t.done);
+  const vis = sortTodos(state.todos.filter(t => todoFilter==='all' ? true : todoFilter==='active' ? !t.done : t.done));
   if (!vis.length) { list.innerHTML = '<p style="text-align:center;color:var(--text-3);margin-top:30px;font-size:13px">Nothing here yet.</p>'; return; }
   vis.forEach(todo => {
     const el = document.createElement('div'); el.className = 'todo-item' + (todo.done ? ' done' : '');
+    el.dataset.id = todo.id;
     const badge = todo.priority==='high' ? '<span class="todo-badge badge-high">High</span>' :
                   todo.priority==='low'  ? '<span class="todo-badge badge-low">Low</span>'   : '<span class="todo-badge badge-normal"></span>';
-    el.innerHTML = '<input type="checkbox" ' + (todo.done?'checked':'') + ' /><span class="todo-text">' + esc(todo.text) + '</span>' + badge + '<button class="todo-del">&#10005;</button>';
+    const dueLabel = todo.due
+      ? '<button class="todo-due ' + dueClass(todo) + '" title="Click to change the date, right-click to remove it">' + esc(fmtDue(todo)) + '</button>'
+      : '<button class="todo-due todo-due-add" title="Add a due date">&#128197;</button>';
+    el.innerHTML = '<input type="checkbox" ' + (todo.done?'checked':'') + ' /><span class="todo-text">' + esc(todo.text) + '</span>' +
+      dueLabel + '<input type="date" class="todo-due-picker" tabindex="-1" />' + badge + '<button class="todo-del">&#10005;</button>';
     el.querySelector('input').addEventListener('change', e => {
       const t=state.todos.find(t=>t.id===todo.id); if(t){t.done=e.target.checked;} renderTodos(); refreshAllMiniWidgets('todo'); save();
+    });
+    const picker = el.querySelector('.todo-due-picker');
+    const dueBtn = el.querySelector('.todo-due');
+    picker.value = todo.due || '';
+    dueBtn.addEventListener('click', () => { try { picker.showPicker(); } catch(e) { picker.focus(); } });
+    picker.addEventListener('change', () => {
+      const t = state.todos.find(t => t.id === todo.id); if (!t) return;
+      t.due = picker.value || null; t.reminded = false;
+      if (!t.due) t.dueTime = '';
+      if (t.due) askNotificationPermission();
+      renderTodos(); refreshAllMiniWidgets('todo'); save();
+    });
+    dueBtn.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      const t = state.todos.find(t => t.id === todo.id); if (!t || !t.due) return;
+      t.due = null; t.dueTime = ''; t.reminded = false;
+      renderTodos(); refreshAllMiniWidgets('todo'); save();
     });
     el.querySelector('.todo-del').addEventListener('click', () => {
       state.todos=state.todos.filter(t=>t.id!==todo.id); renderTodos(); refreshAllMiniWidgets('todo'); save();
     });
     list.appendChild(el);
   });
+}
+
+// ── Due dates ─────────────────────────────────────────────────────
+// Undone tasks with a due date come first (soonest first), then other undone tasks, then done ones
+function sortTodos(todos) {
+  const rank = t => t.done ? 2 : t.due ? 0 : 1;
+  return todos.map((t, i) => ({ t, i })).sort((a, b) => {
+    const r = rank(a.t) - rank(b.t); if (r) return r;
+    if (rank(a.t) === 0) return todoDueAt(a.t) - todoDueAt(b.t);
+    return a.i - b.i;
+  }).map(x => x.t);
+}
+
+// A date with no time is due (and reminded about) at 9am
+function todoDueAt(t) {
+  if (!t.due) return null;
+  const [y, m, d] = t.due.split('-').map(Number);
+  const [hh, mm]  = (t.dueTime || '09:00').split(':').map(Number);
+  return new Date(y, m - 1, d, hh, mm);
+}
+
+function dueDayDiff(t) {
+  const [y, m, d] = t.due.split('-').map(Number);
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  return Math.round((new Date(y, m - 1, d) - today) / 86400000);
+}
+
+function fmtDue(t) {
+  const diff = dueDayDiff(t);
+  const [y, m, d] = t.due.split('-').map(Number);
+  const date = new Date(y, m - 1, d);
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const days   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const short  = d + ' ' + months[m - 1];
+  let label = diff < 0 ? 'Overdue · ' + short : diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : diff < 7 ? days[date.getDay()] : short;
+  if (t.dueTime && diff >= 0) label += ' ' + t.dueTime;
+  return label;
+}
+
+function dueClass(t) {
+  if (t.done) return 'due-later';
+  const diff = dueDayDiff(t);
+  return diff < 0 ? 'due-overdue' : diff === 0 ? 'due-today' : diff <= 2 ? 'due-soon' : 'due-later';
+}
+
+// ── Reminders ─────────────────────────────────────────────────────
+function askNotificationPermission() {
+  if ('Notification' in window && Notification.permission === 'default') {
+    try { Notification.requestPermission(); } catch(e) {}
+  }
+}
+
+function setupReminders() {
+  let day = new Date().toDateString();
+  checkReminders();
+  setInterval(() => {
+    // "Today"/"Tomorrow" labels go stale at midnight
+    const now = new Date().toDateString();
+    if (now !== day) { day = now; renderTodos(); refreshAllMiniWidgets('todo'); }
+    checkReminders();
+  }, 30000);
+}
+
+function checkReminders() {
+  if (state.settings.todoReminders === false) return;
+  const now = new Date();
+  const due = state.todos.filter(t => !t.done && !t.reminded && t.due && todoDueAt(t) <= now);
+  if (!due.length) return;
+  due.forEach(t => { t.reminded = true; });
+  const title = due.length === 1 ? 'To-do due' : due.length + ' to-dos due';
+  const body  = due.map(t => t.text).join('\n');
+  showToast('⏰ ' + title + ': ' + due.map(t => t.text).join(', '), () => window.openPanel('todos'));
+  if ('Notification' in window && Notification.permission === 'granted') {
+    try {
+      const n = new Notification(title, { body });
+      n.onclick = () => { window.focus(); window.openPanel('todos'); };
+    } catch(e) {}
+  }
+  renderTodos(); refreshAllMiniWidgets('todo'); save();
+}
+
+// Small message at the bottom of the screen; click runs onClick if given
+function showToast(msg, onClick) {
+  const t = document.createElement('div');
+  t.className = 'hb-toast' + (onClick ? ' clickable' : '');
+  t.textContent = msg;
+  t.addEventListener('click', () => { t.remove(); if (onClick) onClick(); });
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), onClick ? 12000 : 4000);
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -4067,12 +4554,8 @@ function setupVault() {
   if (pwInput) pwInput.addEventListener('keydown', e => { if (e.key === 'Enter' && unlockBtn) unlockBtn.click(); });
 
   const lockBtn = document.getElementById('vault-lock-btn');
-  if (lockBtn) lockBtn.addEventListener('click', () => {
-    vaultUnlocked = false; masterPassword = null; syncVaultUI();
-    const t = document.getElementById('vault-lock-title');
-    if (t) t.textContent = 'Unlock Vault';
-    refreshAllMiniWidgets('vault');
-  });
+  // Vault and journal share one master password, so locking either locks both
+  if (lockBtn) lockBtn.addEventListener('click', lockAll);
 
   const addBtn    = document.getElementById('vault-add-btn');
   const searchEl  = document.getElementById('vault-search');
@@ -4284,9 +4767,7 @@ async function tryUnlockJournal() {
 }
 
 function lockJournal() {
-  journalUnlocked   = false;
-  currentJournalId  = null;
-  syncJournalUI();
+  lockAll();
 }
 
 function syncJournalUI() {
@@ -4581,29 +5062,171 @@ function setupSettings() {
 
   renderShortcuts();
 
-  on('add-shortcut-btn', 'click', () => {
+  // Icon for the shortcut being added: a picked image wins, then a typed emoji, then the app's own icon
+  let pendingIcon = null, pendingIsCustom = false;
+  const iconBtn = document.getElementById('shortcut-icon-btn');
+  const showPendingIcon = () => {
+    if (!iconBtn) return;
+    iconBtn.innerHTML = pendingIcon ? '<img src="' + esc(pendingIcon) + '" alt="">' : '&#128444;';
+  };
+  const autoIcon = async () => {
+    const p = (document.getElementById('shortcut-path')?.value || '').trim();
+    if (pendingIsCustom || !p || !window.hb.fileIcon) return;
+    pendingIcon = await window.hb.fileIcon(p); showPendingIcon();
+  };
+  on('shortcut-icon-btn', 'click', async () => {
+    const img = await window.hb.openShortcutIcon(); if (!img) return;
+    pendingIcon = img; pendingIsCustom = true; showPendingIcon();
+  });
+  on('shortcut-icon-btn', 'contextmenu', e => { e.preventDefault(); pendingIsCustom = false; pendingIcon = null; showPendingIcon(); autoIcon(); });
+  on('shortcut-path', 'change', autoIcon);
+  on('shortcut-browse-btn', 'click', async () => {
+    const p = await window.hb.pickApp(); if (!p) return;
+    document.getElementById('shortcut-path').value = p;
+    const nm = document.getElementById('shortcut-name');
+    if (nm && !nm.value.trim()) nm.value = p.split(/[\\/]/).pop().replace(/\.(exe|lnk|bat|url)$/i, '');
+    autoIcon();
+  });
+
+  on('add-shortcut-btn', 'click', async () => {
     const name  = (document.getElementById('shortcut-name')?.value  || '').trim();
     const emoji = (document.getElementById('shortcut-emoji')?.value || '').trim();
     const path  = (document.getElementById('shortcut-path')?.value  || '').trim();
     if (!name || !path) { alert('Please enter a name and path.'); return; }
-    state.shortcuts.push({ id:uid(), name, emoji:emoji||'📁', path });
+    let iconImage = pendingIsCustom ? pendingIcon : null;
+    if (!iconImage && !emoji && window.hb.fileIcon) iconImage = pendingIcon || await window.hb.fileIcon(path);
+    state.shortcuts.push({ id:uid(), name, emoji:emoji||'📁', iconImage:iconImage||null, path });
     ['shortcut-name','shortcut-emoji','shortcut-path'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    pendingIcon = null; pendingIsCustom = false; showPendingIcon();
     renderShortcuts(); renderApps(); save();
   });
 
-  on('change-master-pw-btn', 'click', async () => {
-    if (!vaultUnlocked) { alert('Please unlock your Vault first.'); return; }
-    const newPw = prompt('New master password:'); if (!newPw) return;
-    const conf  = prompt('Confirm new master password:'); if (newPw !== conf) { alert('Passwords do not match.'); return; }
-    if (newPw.length < 4) { alert('Must be at least 4 characters.'); return; }
-    try {
-      for (const entry of state.vault.entries) {
-        if(entry.encPassword){const p=await window.hb.decrypt(entry.encPassword,masterPassword);entry.encPassword=p?await window.hb.encrypt(p,newPw):null;}
-        if(entry.encNotes){const n=await window.hb.decrypt(entry.encNotes,masterPassword);entry.encNotes=n?await window.hb.encrypt(n,newPw):null;}
-      }
-      state.vault.verifier = await window.hb.encrypt('hb-verify', newPw);
-      masterPassword = newPw; await save(); alert('Master password changed.');
-    } catch(e) { console.error('Change pw error', e); }
+  // prompt() isn't supported in Electron, so this uses the inline modal
+  on('change-master-pw-btn', 'click', () => {
+    if (!masterPassword) { alert('Please unlock your Vault or Journal first.'); return; }
+    showInlineModal('New master password', 'At least 4 characters', newPw => {
+      if (newPw.length < 4) { alert('Must be at least 4 characters.'); return; }
+      showInlineModal('Confirm new master password', 'Type it again', async conf => {
+        if (conf !== newPw) { alert('Passwords do not match.'); return; }
+        try { await changeMasterPassword(newPw); alert('Master password changed.'); }
+        catch(e) { console.error('Change pw error', e); alert('Could not change the password: ' + e.message + '\nNothing was changed.'); }
+      }, 'password');
+    }, 'password');
+  });
+
+  const autoLockSel = document.getElementById('setting-autolock');
+  if (autoLockSel) autoLockSel.value = String(s.autoLockMinutes ?? 5);
+  set('setting-lock-on-hide', s.lockOnHide !== false);
+  set('setting-reminders',    s.todoReminders !== false);
+  on('setting-autolock',     'change', e => { s.autoLockMinutes = parseInt(e.target.value); save(); });
+  on('setting-lock-on-hide', 'change', e => { s.lockOnHide = e.target.checked; save(); });
+  on('setting-reminders',    'change', e => { s.todoReminders = e.target.checked; if (e.target.checked) askNotificationPermission(); save(); });
+
+  setupBackupSettings();
+}
+
+// Re-encrypts everything (vault entries and journal) with the new password. Every item is
+// decrypted first, so if any of them fails nothing is changed.
+async function changeMasterPassword(newPw) {
+  const dec = async obj => {
+    const v = await window.hb.decrypt(obj, masterPassword);
+    if (v == null) throw new Error('an item could not be decrypted');
+    return v;
+  };
+  const plainVault = [];
+  for (const e of state.vault.entries) {
+    plainVault.push({ pw: e.encPassword ? await dec(e.encPassword) : null, notes: e.encNotes ? await dec(e.encNotes) : null });
+  }
+  const plainDiary = [];
+  for (const e of state.diary.entries) plainDiary.push(e.encBody ? await dec(e.encBody) : null);
+
+  const enc = v => v == null ? null : window.hb.encrypt(v, newPw);
+  const vaultOut = [];
+  for (let i = 0; i < plainVault.length; i++) {
+    vaultOut.push({ ...state.vault.entries[i], encPassword: await enc(plainVault[i].pw), encNotes: await enc(plainVault[i].notes) });
+  }
+  const diaryOut = [];
+  for (let i = 0; i < plainDiary.length; i++) {
+    diaryOut.push({ ...state.diary.entries[i], encBody: plainDiary[i] == null ? '' : await enc(plainDiary[i]) });
+  }
+  state.vault.entries = vaultOut;
+  state.diary.entries = diaryOut;
+  state.vault.verifier = await window.hb.encrypt('hb-verify', newPw);
+  masterPassword = newPw;
+  await flushSave();
+}
+
+// ── Backups ───────────────────────────────────────────────────────
+function setupBackupSettings() {
+  const status = document.getElementById('backup-status');
+  const say = msg => { if (status) { status.textContent = msg; status.style.display = ''; } };
+  const desc = document.getElementById('backup-desc');
+  const folderBtn = document.getElementById('open-backups-btn');
+  if (window.hb.openBackups) {
+    if (desc) desc.textContent = 'Homeboard keeps a copy of your data every day for the last two weeks. You can also export a backup file to keep somewhere safe.';
+    folderBtn?.addEventListener('click', () => window.hb.openBackups());
+  } else {
+    if (desc) desc.textContent = 'Your data is stored in this browser only. Export a backup now and then so you don\'t lose it if the browser data is cleared.';
+    if (folderBtn) folderBtn.style.display = 'none';
+  }
+
+  document.getElementById('export-data-btn')?.addEventListener('click', async () => {
+    await flushSave();
+    const ok = await window.hb.exportData(JSON.stringify(state, null, 2));
+    if (ok) say('Backup exported.');
+  });
+
+  document.getElementById('import-data-btn')?.addEventListener('click', async () => {
+    const raw = await window.hb.importData(); if (!raw) return;
+    let data;
+    try { data = JSON.parse(raw); } catch { alert('That file isn\'t a valid backup.'); return; }
+    if (!data || typeof data !== 'object' || !('settings' in data || 'boardNotes' in data || 'todos' in data)) {
+      alert('That file doesn\'t look like a Homeboard backup.'); return;
+    }
+    if (!confirm('Replace everything on this Homeboard with the backup? Your current data will be overwritten.')) return;
+    state = { ...state, ...data };
+    await flushSave();
+    say('Imported! Reloading…');
+    setTimeout(() => location.reload(), 600);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════
+// AUTO-LOCK
+// ═══════════════════════════════════════════════════════════════
+
+let lastActivity = Date.now();
+
+async function lockAll() {
+  // Don't lose a journal entry that's mid-autosave
+  if (journalUnlocked && currentJournalId && journalAutoSaveTimer) {
+    clearTimeout(journalAutoSaveTimer); journalAutoSaveTimer = null;
+    await saveJournalEntry(true);
+  }
+  vaultUnlocked = false; journalUnlocked = false; masterPassword = null; currentJournalId = null;
+  closeVaultModal();
+  const jt = document.getElementById('journal-text'); if (jt) jt.value = '';
+  document.getElementById('journal-editor-inner')?.classList.add('hidden');
+  document.getElementById('journal-editor-placeholder')?.classList.remove('hidden');
+  const vl = document.getElementById('vault-list'); if (vl) vl.innerHTML = '';
+  const vs = document.getElementById('vault-search'); if (vs) vs.value = '';
+  if (state.vault.verifier) {
+    const t = document.getElementById('vault-lock-title'); if (t) t.textContent = 'Unlock Vault';
+    const d = document.getElementById('vault-lock-desc');  if (d) d.textContent = 'Enter your master password to access your saved passwords.';
+  }
+  syncVaultUI(); syncJournalUI();
+  ['vault', 'journal', 'journal-invite'].forEach(refreshAllMiniWidgets);
+}
+
+function setupAutoLock() {
+  ['mousemove', 'mousedown', 'keydown', 'wheel', 'touchstart'].forEach(ev =>
+    document.addEventListener(ev, () => { lastActivity = Date.now(); }, { passive: true }));
+  setInterval(() => {
+    const mins = Number(state.settings.autoLockMinutes ?? 5);
+    if (mins > 0 && (vaultUnlocked || journalUnlocked) && Date.now() - lastActivity > mins * 60000) lockAll();
+  }, 15000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden && state.settings.lockOnHide !== false && (vaultUnlocked || journalUnlocked)) lockAll();
   });
 }
 
@@ -4613,8 +5236,18 @@ function renderShortcuts() {
   if (!state.shortcuts.length) { list.innerHTML = '<p class="muted-text">No shortcuts yet.</p>'; return; }
   state.shortcuts.forEach(s => {
     const el = document.createElement('div'); el.className = 'shortcut-item';
-    el.innerHTML = '<span class="s-icon">' + esc(s.emoji||'📁') + '</span><span class="s-name">' + esc(s.name) + '</span><span class="s-path" title="' + esc(s.path) + '">' + esc(s.path) + '</span><button class="s-del">&#10005;</button>';
+    el.innerHTML = '<button class="s-icon" title="Click to choose an icon image, right-click to use the app icon">' + shortcutIconHtml(s) + '</button><span class="s-name">' + esc(s.name) + '</span><span class="s-path" title="' + esc(s.path) + '">' + esc(s.path) + '</span><button class="s-del">&#10005;</button>';
     el.querySelector('.s-del').addEventListener('click', () => { state.shortcuts=state.shortcuts.filter(x=>x.id!==s.id); renderShortcuts(); renderApps(); save(); });
+    const ic = el.querySelector('.s-icon');
+    ic.addEventListener('click', async () => {
+      const img = await window.hb.openShortcutIcon(); if (!img) return;
+      s.iconImage = img; renderShortcuts(); renderApps(); save();
+    });
+    ic.addEventListener('contextmenu', async e => {
+      e.preventDefault();
+      s.iconImage = window.hb.fileIcon ? await window.hb.fileIcon(s.path) : null;
+      renderShortcuts(); renderApps(); save();
+    });
     list.appendChild(el);
   });
 }
@@ -4644,6 +5277,10 @@ function applySettings() {
 // UTILITIES
 // ═══════════════════════════════════════════════════════════════
 
+function shortcutIconHtml(s, fallback) {
+  if (s.iconImage) return '<img class="sc-img" src="' + esc(s.iconImage) + '" alt="" draggable="false">';
+  return esc(s.emoji || fallback || '📁');
+}
 function esc(s) {
   if (s == null) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
