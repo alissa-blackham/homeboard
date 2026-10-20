@@ -98,6 +98,9 @@ $shim = @'
     minimize:       noop, maximize: noop, close: noop, setStartup: noop,
     openImage:      () => openFilePicker('image/*'),
     openBoardImage: () => openFilePicker('image/*'),
+    openShortcutIcon: () => openFilePicker('image/*'),
+    pickApp:        () => Promise.resolve(null),
+    fileIcon:       () => Promise.resolve(null),
     encrypt:        (t, p) => hbEncrypt(t, p),
     decrypt:        (o, p) => hbDecrypt(o, p),
   };

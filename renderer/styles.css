@@ -211,7 +211,8 @@ body.topbar-light #topbar-add-btn.open { background:var(--accent-light); border-
 #widget-apps { top:20px; left:20px; min-width:200px; max-width:300px; }
 #apps-grid { display:flex; flex-wrap:wrap; gap:8px; padding:10px 12px 0; min-height:20px; }
 .app-btn { display:flex; flex-direction:column; align-items:center; gap:5px; padding:8px 10px; border:1px solid var(--border); background:var(--surface-2); border-radius:10px; cursor:pointer; font-family:var(--font); font-size:11px; font-weight:600; color:var(--text-2); transition:all .14s; min-width:56px; }
-.app-btn .app-icon { font-size:20px; line-height:1; }
+.app-btn .app-icon { font-size:20px; line-height:1; display:flex; align-items:center; justify-content:center; height:28px; }
+.sc-img { width:28px; height:28px; object-fit:contain; display:block; }
 .app-btn:hover { background:var(--accent-light); border-color:var(--accent); color:var(--accent); transform:translateY(-1px); box-shadow:var(--sh-sm); }
 .widget-add-link { display:block; margin:6px 12px 10px; font-size:11px; color:var(--text-3); background:none; border:none; cursor:pointer; font-family:var(--font); padding:0; text-align:left; transition:color .12s; }
 .widget-add-link:hover { color:var(--accent); }
@@ -1244,7 +1245,16 @@ input[type="color"] { width:36px; height:32px; padding:2px; }
 #bg-image-row.hidden { display:none; }
 .shortcut-item { display:flex; align-items:center; gap:8px; padding:8px 0; border-bottom:1px solid var(--border); font-size:13px; }
 .shortcut-item:last-child { border-bottom:none; }
-.s-icon { font-size:16px; width:20px; text-align:center; flex-shrink:0; }
+.s-icon { font-size:16px; width:30px; height:30px; display:flex; align-items:center; justify-content:center; flex-shrink:0; border:1px dashed transparent; background:none; border-radius:7px; cursor:pointer; padding:0; transition:all .12s; }
+.s-icon:hover { border-color:var(--accent); background:var(--accent-light); }
+.s-icon .sc-img { width:22px; height:22px; }
+#shortcut-icon-btn { width:36px; height:34px; border:1px dashed var(--border); border-radius:7px; background:var(--surface-2); cursor:pointer; font-size:16px; padding:0; display:flex; align-items:center; justify-content:center; }
+#shortcut-icon-btn:hover { border-color:var(--accent); }
+#shortcut-icon-btn img { width:24px; height:24px; object-fit:contain; }
+.chip-icon { display:flex; align-items:center; }
+.chip-icon .sc-img { width:16px; height:16px; }
+.apppin-icon.has-img { box-shadow:none; }
+.apppin-icon img { width:44px; height:44px; object-fit:contain; pointer-events:none; filter:drop-shadow(0 3px 8px rgba(0,0,0,0.3)); }
 .s-name { font-weight:600; color:var(--text); flex:1; }
 .s-path { font-size:11px; color:var(--text-3); flex:2; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .s-del { border:none; background:none; color:var(--text-3); cursor:pointer; font-size:14px; padding:2px 4px; border-radius:4px; transition:all .1s; }
@@ -1288,3 +1298,5 @@ input[type="color"] { width:36px; height:32px; padding:2px; }
 ::-webkit-scrollbar-thumb { background:var(--border-2,#d0c4bc); border-radius:4px; }
 ::-webkit-scrollbar-thumb:hover { background:var(--text-3); }
 
+#shortcut-browse-btn { padding:7px 12px; border:1px solid var(--border); border-radius:7px; background:var(--surface-2); cursor:pointer; font-family:var(--font); font-size:12px; font-weight:600; color:var(--text-2); }
+#shortcut-browse-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--accent-light); }

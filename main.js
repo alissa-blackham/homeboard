@@ -85,7 +85,16 @@ ipcMain.handle('window:minimize', () => win && win.minimize());
 ipcMain.handle('window:maximize', () => win && (win.isMaximized() ? win.unmaximize() : win.maximize()));
 ipcMain.handle('window:close', () => win && win.close());
 ipcMain.handle('startup:set', (_, enabled) => {
-  app.setLoginItemSettings({ openAtLogin: enabled, path: app.getPath('exe') });
+  const { execSync } = require('child_process');
+  const exePath = app.getPath('exe').replace(/\\/g, '\\\\');
+  const key = 'HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run';
+  try {
+    if (enabled) {
+      execSync(`reg add "${key}" /v Homeboard /t REG_SZ /d "${exePath}" /f`);
+    } else {
+      execSync(`reg delete "${key}" /v Homeboard /f`);
+    }
+  } catch (e) {}
 });
 
 ipcMain.handle('dialog:open-board-image', async () => {
@@ -148,5 +157,36 @@ ipcMain.handle('crypto:decrypt', (_, obj, password) => {
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, Buffer.from(obj.i, 'base64'));
     decipher.setAuthTag(Buffer.from(obj.t, 'base64'));
     return decipher.update(Buffer.from(obj.d, 'base64')) + decipher.final('utf8');
+  } catch { return null; }
+});
+
+// Shortcut icons: pick a custom image, or pull the real icon out of an .exe/file
+ipcMain.handle('dialog:open-shortcut-icon', async () => {
+  const result = await dialog.showOpenDialog(win, {
+    title: 'Choose an icon',
+    properties: ['openFile'],
+    filters: [{ name: 'Images', extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'ico', 'avif'] }],
+  });
+  if (result.canceled || !result.filePaths.length) return null;
+  const srcPath = result.filePaths[0];
+  const destPath = path.join(imagesDir, `icon_${Date.now()}${path.extname(srcPath).toLowerCase()}`);
+  fs.copyFileSync(srcPath, destPath);
+  return `file://${destPath.replace(/\\/g, '/')}`;
+});
+
+ipcMain.handle('dialog:open-app', async () => {
+  const result = await dialog.showOpenDialog(win, {
+    title: 'Choose an app or file',
+    properties: ['openFile'],
+    filters: [{ name: 'Apps & shortcuts', extensions: ['exe', 'lnk', 'bat', 'url'] }, { name: 'All files', extensions: ['*'] }],
+  });
+  if (result.canceled || !result.filePaths.length) return null;
+  return result.filePaths[0];
+});
+
+ipcMain.handle('app:file-icon', async (_, filePath) => {
+  try {
+    const img = await app.getFileIcon(filePath, { size: 'large' });
+    return img.isEmpty() ? null : img.toDataURL();
   } catch { return null; }
 });

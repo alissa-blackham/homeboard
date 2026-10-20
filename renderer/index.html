@@ -365,12 +365,14 @@
       </section>
       <section class="settings-section">
         <h4>App Shortcuts</h4>
-        <p class="muted-text">Quick-launch buttons shown on the board.</p>
+        <p class="muted-text">Quick-launch buttons shown on the board. Click &#128444; to use your own picture as the icon, otherwise the app's real icon is used. Click an icon in the list to change it.</p>
         <div id="shortcuts-list"></div>
         <div id="add-shortcut-form">
+          <button type="button" id="shortcut-icon-btn" title="Choose an icon image (right-click to reset)">&#128444;</button>
           <input type="text" id="shortcut-name"  placeholder="Name" />
-          <input type="text" id="shortcut-emoji" placeholder="Icon" style="width:54px" />
+          <input type="text" id="shortcut-emoji" placeholder="Emoji" style="width:62px" />
           <input type="text" id="shortcut-path"  placeholder="Path to .exe" />
+          <button type="button" id="shortcut-browse-btn" title="Browse for an app">Browse&hellip;</button>
           <button id="add-shortcut-btn" class="action-btn">Add</button>
         </div>
       </section>

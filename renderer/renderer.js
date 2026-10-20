@@ -268,6 +268,8 @@ async function init() {
         diary:        { entries: [], ...(loaded.diary || {}) },
         boardDecors:  loaded.boardDecors || [],
       };
+      // migrate shortcuts that were saved without ids
+      state.shortcuts = (state.shortcuts || []).map(s => s.id ? s : { ...s, id: uid() });
     }
   } catch (e) { console.error('Load error', e); }
 
@@ -965,8 +967,8 @@ function appendDecor(d) {
   } else if (d.type === 'apppin') {
     const iconBg = d.color || '#9c6b5e';
     el.innerHTML =
-      '<div class="apppin-icon" style="background:' + iconBg + '" title="Open ' + esc(d.label||'') + '">' +
-        esc(d.icon || '?') +
+      '<div class="apppin-icon' + (d.iconImage ? ' has-img' : '') + '" style="background:' + iconBg + '" title="Open ' + esc(d.label||'') + '">' +
+        (d.iconImage ? '<img src="' + esc(d.iconImage) + '" alt="" draggable="false">' : esc(d.icon || '?')) +
       '</div>' +
       '<div class="apppin-label">' + esc(d.label || 'App') + '</div>' +
       '<button class="decor-del apppin-del">&#10005;</button>';
@@ -1192,9 +1194,9 @@ function renderAestheticTab(tab) {
       const chips = document.createElement('div'); chips.className = 'al-shortcuts-quick';
       state.shortcuts.forEach(sc => {
         const chip = document.createElement('button'); chip.className = 'al-shortcut-chip';
-        chip.innerHTML = '<span>' + esc(sc.emoji || sc.name[0]) + '</span><span>' + esc(sc.name) + '</span>';
+        chip.innerHTML = '<span class="chip-icon">' + shortcutIconHtml(sc, sc.name[0]) + '</span><span>' + esc(sc.name) + '</span>';
         chip.onclick = () => {
-          const d = { id:uid(), type:'apppin', icon:sc.emoji||sc.name[0], label:sc.name, path:sc.path, color:'#9c6b5e',
+          const d = { id:uid(), type:'apppin', icon:sc.emoji||sc.name[0], iconImage:sc.iconImage||null, label:sc.name, path:sc.path, color:sc.iconImage?'transparent':'#9c6b5e',
             x:100+Math.round(Math.random()*220), y:80+Math.round(Math.random()*140) };
           state.boardDecors.push(d); appendDecor(d); save();
           window.closeAestheticLibrary();
@@ -1285,7 +1287,7 @@ function renderApps() {
   state.shortcuts.forEach(app => {
     const btn = document.createElement('button');
     btn.className = 'app-btn'; btn.title = app.path;
-    btn.innerHTML = '<span class="app-icon">' + esc(app.emoji || '📁') + '</span><span>' + esc(app.name) + '</span>';
+    btn.innerHTML = '<span class="app-icon">' + shortcutIconHtml(app) + '</span><span>' + esc(app.name) + '</span>';
     btn.addEventListener('click', () => window.hb.openApp(app.path));
     grid.appendChild(btn);
   });
@@ -2683,13 +2685,42 @@ function setupSettings() {
 
   renderShortcuts();
 
-  on('add-shortcut-btn', 'click', () => {
+  // Icon for the shortcut being added: a picked image wins, then a typed emoji, then the app's own icon
+  let pendingIcon = null, pendingIsCustom = false;
+  const iconBtn = document.getElementById('shortcut-icon-btn');
+  const showPendingIcon = () => {
+    if (!iconBtn) return;
+    iconBtn.innerHTML = pendingIcon ? '<img src="' + esc(pendingIcon) + '" alt="">' : '&#128444;';
+  };
+  const autoIcon = async () => {
+    const p = (document.getElementById('shortcut-path')?.value || '').trim();
+    if (pendingIsCustom || !p || !window.hb.fileIcon) return;
+    pendingIcon = await window.hb.fileIcon(p); showPendingIcon();
+  };
+  on('shortcut-icon-btn', 'click', async () => {
+    const img = await window.hb.openShortcutIcon(); if (!img) return;
+    pendingIcon = img; pendingIsCustom = true; showPendingIcon();
+  });
+  on('shortcut-icon-btn', 'contextmenu', e => { e.preventDefault(); pendingIsCustom = false; pendingIcon = null; showPendingIcon(); autoIcon(); });
+  on('shortcut-path', 'change', autoIcon);
+  on('shortcut-browse-btn', 'click', async () => {
+    const p = await window.hb.pickApp(); if (!p) return;
+    document.getElementById('shortcut-path').value = p;
+    const nm = document.getElementById('shortcut-name');
+    if (nm && !nm.value.trim()) nm.value = p.split(/[\\/]/).pop().replace(/\.(exe|lnk|bat|url)$/i, '');
+    autoIcon();
+  });
+
+  on('add-shortcut-btn', 'click', async () => {
     const name  = (document.getElementById('shortcut-name')?.value  || '').trim();
     const emoji = (document.getElementById('shortcut-emoji')?.value || '').trim();
     const path  = (document.getElementById('shortcut-path')?.value  || '').trim();
     if (!name || !path) { alert('Please enter a name and path.'); return; }
-    state.shortcuts.push({ id:uid(), name, emoji:emoji||'📁', path });
+    let iconImage = pendingIsCustom ? pendingIcon : null;
+    if (!iconImage && !emoji && window.hb.fileIcon) iconImage = pendingIcon || await window.hb.fileIcon(path);
+    state.shortcuts.push({ id:uid(), name, emoji:emoji||'📁', iconImage:iconImage||null, path });
     ['shortcut-name','shortcut-emoji','shortcut-path'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+    pendingIcon = null; pendingIsCustom = false; showPendingIcon();
     renderShortcuts(); renderApps(); save();
   });
 
@@ -2715,8 +2746,18 @@ function renderShortcuts() {
   if (!state.shortcuts.length) { list.innerHTML = '<p class="muted-text">No shortcuts yet.</p>'; return; }
   state.shortcuts.forEach(s => {
     const el = document.createElement('div'); el.className = 'shortcut-item';
-    el.innerHTML = '<span class="s-icon">' + esc(s.emoji||'📁') + '</span><span class="s-name">' + esc(s.name) + '</span><span class="s-path" title="' + esc(s.path) + '">' + esc(s.path) + '</span><button class="s-del">&#10005;</button>';
+    el.innerHTML = '<button class="s-icon" title="Click to choose an icon image, right-click to use the app icon">' + shortcutIconHtml(s) + '</button><span class="s-name">' + esc(s.name) + '</span><span class="s-path" title="' + esc(s.path) + '">' + esc(s.path) + '</span><button class="s-del">&#10005;</button>';
     el.querySelector('.s-del').addEventListener('click', () => { state.shortcuts=state.shortcuts.filter(x=>x.id!==s.id); renderShortcuts(); renderApps(); save(); });
+    const ic = el.querySelector('.s-icon');
+    ic.addEventListener('click', async () => {
+      const img = await window.hb.openShortcutIcon(); if (!img) return;
+      s.iconImage = img; renderShortcuts(); renderApps(); save();
+    });
+    ic.addEventListener('contextmenu', async e => {
+      e.preventDefault();
+      s.iconImage = window.hb.fileIcon ? await window.hb.fileIcon(s.path) : null;
+      renderShortcuts(); renderApps(); save();
+    });
     list.appendChild(el);
   });
 }
@@ -2746,6 +2787,10 @@ function applySettings() {
 // UTILITIES
 // ═══════════════════════════════════════════════════════════════
 
+function shortcutIconHtml(s, fallback) {
+  if (s.iconImage) return '<img class="sc-img" src="' + esc(s.iconImage) + '" alt="" draggable="false">';
+  return esc(s.emoji || fallback || '📁');
+}
 function esc(s) {
   if (s == null) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');

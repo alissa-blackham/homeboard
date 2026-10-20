@@ -14,6 +14,9 @@ contextBridge.exposeInMainWorld('hb', {
   setStartup:  (e) => ipcRenderer.invoke('startup:set', e),
   openImage:       () => ipcRenderer.invoke('dialog:open-image'),
   openBoardImage:  () => ipcRenderer.invoke('dialog:open-board-image'),
+  openShortcutIcon: () => ipcRenderer.invoke('dialog:open-shortcut-icon'),
+  pickApp:         () => ipcRenderer.invoke('dialog:open-app'),
+  fileIcon:        (p) => ipcRenderer.invoke('app:file-icon', p),
   encrypt:     (t, p) => ipcRenderer.invoke('crypto:encrypt', t, p),
   decrypt:     (o, p) => ipcRenderer.invoke('crypto:decrypt', o, p),
 });
